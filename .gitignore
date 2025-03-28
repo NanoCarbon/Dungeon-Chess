@@ -1,0 +1,6 @@
+.vscode/
+bin/
+obj/
+.DungeonChess.Win/bin
+.DungeonChess.Win/obj
+.sln
