@@ -1,5 +1,6 @@
 using System;               // ✅ This is required
 using System.Windows.Forms;
+using DungeonChess.Core;
 
 namespace DungeonChess.Win
 {

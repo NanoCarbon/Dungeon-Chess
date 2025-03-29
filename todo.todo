@@ -1,0 +1,43 @@
+Core Mechanics
+Movement Limitations:
+
+☐ Implement max movement range per piece
+
+☐ Add movement energy cost and/or limitations
+
+ Combat Mechanism:
+
+☐ Define damage values and attack ranges for pieces
+
+☐ Implement a method for pieces to deal and receive damage
+
+☐ Determine conditions for piece elimination (HP reaching 0)
+
+ Piece Variety:
+
+☐ Create a second type of piece with unique movement/combat rules (e.g., a Rook or Knight variant)
+
+☐ Consider using inheritance or interfaces for different piece types
+
+ Turn System:
+
+☐ Add a turn counter to track rounds/movements
+
+☐ Limit the number of moves or actions per turn
+
+☐ Update game state to switch turns and reflect changes in UI
+
+UI & Integration (WinForms)
+
+☐ Update board drawing to reflect movement/combat feedback
+
+☐ Display current turn count and active player information
+
+☐ (Optional) Highlight possible moves/attack ranges on the board
+
+Future Enhancements
+☐ Implement a shop system for purchasing upgrades or buffs using gold earned from combat
+
+☐ Create a room/level progression system with increasing difficulty
+
+☐ Develop the end goal mechanics (capture the King, etc.)

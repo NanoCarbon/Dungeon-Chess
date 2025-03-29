@@ -2,22 +2,22 @@ namespace DungeonChess.Core;
 
 public class Piece
 {
+    public int Row { get; set; }
+    public int Col { get; set; }
+    public char Symbol { get; set; } = 'P';
+
     private int hp;
 
-    public Piece()
+    public Piece(int row, int col)
     {
+        Row = row;
+        Col = col;
         hp = 10;
     }
 
-    public int GetHP()
-    {
-        return hp;
-    }
+    public int GetHP() => hp;
 
-    public void SetHP(int value)
-    {
-        hp = value;
-    }
+    public void SetHP(int value) => hp = value;
 
     public void TakeDamage(int damage)
     {
