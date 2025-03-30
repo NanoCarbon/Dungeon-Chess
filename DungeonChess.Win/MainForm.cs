@@ -13,19 +13,20 @@ namespace DungeonChess.Win
         private Piece selectedPiece = null;
         private Button endTurnButton;
         private const int TileSize = 50;
-        private const int BoardSize = 10;
+        private const int BoardSize = 8; // Updated to 8x8 board.
         
         public MainForm()
         {
+            // Set form title and client size: width is doubled.
             this.Text = "Dungeon Chess Board";
-            this.ClientSize = new Size(TileSize * BoardSize, (TileSize * BoardSize) + 100);
+            this.ClientSize = new Size(TileSize * BoardSize * 2, (TileSize * BoardSize) + 100);
             this.BackColor = Color.Black;
             this.DoubleBuffered = true;
             this.KeyPreview = true;
             this.KeyDown += MainForm_KeyDown;
             this.MouseClick += MainForm_MouseClick;
 
-            board = new Board(); // Core logic reference
+            board = new Board(); // Core logic reference.
                     
             // Status message label.
             messageLabel = new Label();
@@ -69,7 +70,21 @@ namespace DungeonChess.Win
             Graphics g = e.Graphics;
             Font font = new Font("Consolas", 16);
 
-            // Draw possible move highlights if a piece is selected.
+            // 1. Draw the base board with alternating colors.
+            for (int row = 0; row < BoardSize; row++)
+            {
+                for (int col = 0; col < BoardSize; col++)
+                {
+                    // Alternate tile color: (row+col) even = black, odd = white.
+                    Color tileColor = ((row + col) % 2 == 0) ? Color.Black : Color.White;
+                    using (SolidBrush sb = new SolidBrush(tileColor))
+                    {
+                        g.FillRectangle(sb, col * TileSize, row * TileSize, TileSize, TileSize);
+                    }
+                }
+            }
+
+            // 2. Draw possible move highlights if a piece is selected.
             if (selectedPiece != null)
             {
                 int selRow = selectedPiece.Row;
@@ -83,15 +98,12 @@ namespace DungeonChess.Win
                             continue;
 
                         bool isValidMove = false;
-                        
-                        // If a movement behavior is defined, use it.
                         if (selectedPiece.MovementBehavior != null)
                         {
                             isValidMove = selectedPiece.MovementBehavior.IsMoveValid(selectedPiece, row, col, board);
                         }
                         else
                         {
-                            // Fallback: simply check Chebyshev distance.
                             int dx = Math.Abs(row - selRow);
                             int dy = Math.Abs(col - selCol);
                             int distance = Math.Max(dx, dy);
@@ -100,7 +112,6 @@ namespace DungeonChess.Win
 
                         if (isValidMove)
                         {
-                            // Decide highlight color based on occupancy.
                             var occupant = board.GetPieceAt(row, col);
                             Color highlightColor = (occupant != null && occupant != selectedPiece)
                                 ? Color.FromArgb(200, 255, 102, 102)    // Light red for blocked moves.
@@ -114,28 +125,34 @@ namespace DungeonChess.Win
                 }
             }
 
-
-            // Draw the board grid and pieces.
+            // 3. Draw the board pieces.
             for (int row = 0; row < BoardSize; row++)
             {
                 for (int col = 0; col < BoardSize; col++)
                 {
-                    string tileText = "[ ]";
+                    string tileText = " ";
                     var piece = board.GetPieceAt(row, col);
                     Brush textBrush = Brushes.White;
                     if (piece != null)
                     {
-                        tileText = $"[{piece.Symbol}]";
+                        tileText = $"{piece.Symbol}";
                         if (piece == selectedPiece)
                             textBrush = Brushes.Red;
                         else
                             textBrush = new SolidBrush(piece.GetPlayer().PieceColor);
                     }
-                    g.DrawString(tileText, font, textBrush, col * TileSize, row * TileSize);
+                    
+                    // Measure the size of the text.
+                    SizeF textSize = g.MeasureString(tileText, font);
+                    
+                    // Calculate the center position of the tile.
+                    float x = col * TileSize + (TileSize - textSize.Width) / 2;
+                    float y = row * TileSize + (TileSize - textSize.Height) / 2;
+                    
+                    g.DrawString(tileText, font, textBrush, x, y);
                 }
             }
         }
-
 
         private void MainForm_KeyDown(object sender, KeyEventArgs e)
         {
@@ -171,7 +188,7 @@ namespace DungeonChess.Win
                 return;
             }
             
-           if (e.Button == MouseButtons.Right)
+            if (e.Button == MouseButtons.Right)
             {
                 // Right-click: Attempt an attack.
                 if (selectedPiece == null)
@@ -194,7 +211,6 @@ namespace DungeonChess.Win
                     return;
                 }
                 
-                // Check if target is within attack range (using Chebyshev distance).
                 int dx = Math.Abs(row - selectedPiece.Row);
                 int dy = Math.Abs(col - selectedPiece.Col);
                 int distance = Math.Max(dx, dy);
@@ -204,36 +220,32 @@ namespace DungeonChess.Win
                     return;
                 }
                 
-                // Prevent attacking your own piece.
                 if (targetPiece.GetPlayer() == selectedPiece.GetPlayer())
                 {
                     messageLabel.Text = "Cannot attack your own piece.";
                     return;
                 }
                 
-                // Attack: Use selectedPiece's Attack value as damage.
                 targetPiece.TakeDamage(selectedPiece.Attack);
-                // Decrease player's energy by 1 for a successful attack.
                 board.currentPlayer.Energy -= 1;
                 
-                messageLabel.Text = $"Attacked piece at [{row}, {col}] for {selectedPiece.Attack} damage. Remaining Energy: {board.currentPlayer.Energy}";
-                UpdatePlayerInfoLabel();
-                
-                // Check if the target piece died.
                 if (targetPiece.GetHP() == 0)
                 {
-                    messageLabel.Text += " Target piece has died!";
-                    // Remove the target piece from the board.
+                    messageLabel.Text = $"Attacked piece at [{row}, {col}] for {selectedPiece.Attack} damage. Target piece has died!";
                     board.Pieces.Remove(targetPiece);
+                    selectedPiece.Row = row;
+                    selectedPiece.Col = col;
                 }
-                
-                this.Invalidate(); // Force redraw.
+                else
+                {
+                    messageLabel.Text = $"Attacked piece at [{row}, {col}] for {selectedPiece.Attack} damage. Remaining Energy: {board.currentPlayer.Energy}";
+                }
+                UpdatePlayerInfoLabel();
+                this.Invalidate();
                 return;
             }
-
             else if (e.Button == MouseButtons.Left)
             {
-                // Left-click: Existing selection/movement logic.
                 if (selectedPiece == null)
                 {
                     Piece clickedPiece = board.GetPieceAt(row, col);
@@ -257,7 +269,6 @@ namespace DungeonChess.Win
                 }
                 else
                 {
-                    // Attempt to move the selected piece (if no target piece is there).
                     Piece destinationPiece = board.GetPieceAt(row, col);
                     if (destinationPiece != null && destinationPiece != selectedPiece)
                     {
