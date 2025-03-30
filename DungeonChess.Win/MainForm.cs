@@ -78,15 +78,31 @@ namespace DungeonChess.Win
                 {
                     for (int col = 0; col < BoardSize; col++)
                     {
+                        // Skip the tile where the piece is.
                         if (row == selRow && col == selCol)
                             continue;
-                        int dx = Math.Abs(row - selRow);
-                        int dy = Math.Abs(col - selCol);
-                        int distance = Math.Max(dx, dy);
-                        if (distance <= selectedPiece.MovementRange)
+
+                        bool isValidMove = false;
+                        
+                        // If a movement behavior is defined, use it.
+                        if (selectedPiece.MovementBehavior != null)
                         {
+                            isValidMove = selectedPiece.MovementBehavior.IsMoveValid(selectedPiece, row, col, board);
+                        }
+                        else
+                        {
+                            // Fallback: simply check Chebyshev distance.
+                            int dx = Math.Abs(row - selRow);
+                            int dy = Math.Abs(col - selCol);
+                            int distance = Math.Max(dx, dy);
+                            isValidMove = (distance <= selectedPiece.MovementRange);
+                        }
+
+                        if (isValidMove)
+                        {
+                            // Decide highlight color based on occupancy.
                             var occupant = board.GetPieceAt(row, col);
-                            Color highlightColor = occupant != null && occupant != selectedPiece
+                            Color highlightColor = (occupant != null && occupant != selectedPiece)
                                 ? Color.FromArgb(200, 255, 102, 102)    // Light red for blocked moves.
                                 : Color.FromArgb(200, 173, 216, 230);   // Light blue for available moves.
                             using (SolidBrush sb = new SolidBrush(highlightColor))
@@ -97,6 +113,7 @@ namespace DungeonChess.Win
                     }
                 }
             }
+
 
             // Draw the board grid and pieces.
             for (int row = 0; row < BoardSize; row++)
@@ -118,6 +135,7 @@ namespace DungeonChess.Win
                 }
             }
         }
+
 
         private void MainForm_KeyDown(object sender, KeyEventArgs e)
         {
@@ -146,53 +164,119 @@ namespace DungeonChess.Win
         {
             int col = e.X / TileSize;
             int row = e.Y / TileSize;
+            
             if (row >= BoardSize || col >= BoardSize)
             {
                 messageLabel.Text = "Click was outside the board.";
                 return;
             }
-
-            if (selectedPiece == null)
+            
+           if (e.Button == MouseButtons.Right)
             {
-                Piece clickedPiece = board.GetPieceAt(row, col);
-                if (clickedPiece != null)
+                // Right-click: Attempt an attack.
+                if (selectedPiece == null)
                 {
-                    if (clickedPiece.GetPlayer() == board.currentPlayer)
+                    messageLabel.Text = "No piece selected for attack.";
+                    return;
+                }
+
+                // Check that the current player has enough energy.
+                if (board.currentPlayer.Energy <= 0)
+                {
+                    messageLabel.Text = "Not enough energy to attack.";
+                    return;
+                }
+
+                Piece targetPiece = board.GetPieceAt(row, col);
+                if (targetPiece == null)
+                {
+                    messageLabel.Text = "No target piece at this tile.";
+                    return;
+                }
+                
+                // Check if target is within attack range (using Chebyshev distance).
+                int dx = Math.Abs(row - selectedPiece.Row);
+                int dy = Math.Abs(col - selectedPiece.Col);
+                int distance = Math.Max(dx, dy);
+                if (distance > selectedPiece.MovementRange)
+                {
+                    messageLabel.Text = "Target is out of attack range.";
+                    return;
+                }
+                
+                // Prevent attacking your own piece.
+                if (targetPiece.GetPlayer() == selectedPiece.GetPlayer())
+                {
+                    messageLabel.Text = "Cannot attack your own piece.";
+                    return;
+                }
+                
+                // Attack: Use selectedPiece's Attack value as damage.
+                targetPiece.TakeDamage(selectedPiece.Attack);
+                // Decrease player's energy by 1 for a successful attack.
+                board.currentPlayer.Energy -= 1;
+                
+                messageLabel.Text = $"Attacked piece at [{row}, {col}] for {selectedPiece.Attack} damage. Remaining Energy: {board.currentPlayer.Energy}";
+                UpdatePlayerInfoLabel();
+                
+                // Check if the target piece died.
+                if (targetPiece.GetHP() == 0)
+                {
+                    messageLabel.Text += " Target piece has died!";
+                    // Remove the target piece from the board.
+                    board.Pieces.Remove(targetPiece);
+                }
+                
+                this.Invalidate(); // Force redraw.
+                return;
+            }
+
+            else if (e.Button == MouseButtons.Left)
+            {
+                // Left-click: Existing selection/movement logic.
+                if (selectedPiece == null)
+                {
+                    Piece clickedPiece = board.GetPieceAt(row, col);
+                    if (clickedPiece != null)
                     {
-                        selectedPiece = clickedPiece;
-                        messageLabel.Text = $"Selected piece at [{row}, {col}] - HP: {clickedPiece.GetHP()}, Range: {clickedPiece.MovementRange}";
+                        if (clickedPiece.GetPlayer() == board.currentPlayer)
+                        {
+                            selectedPiece = clickedPiece;
+                            messageLabel.Text = $"Selected piece at [{row}, {col}] - HP: {clickedPiece.GetHP()}, Range: {clickedPiece.MovementRange}";
+                            this.Invalidate();
+                        }
+                        else
+                        {
+                            messageLabel.Text = "Not your piece!";
+                        }
+                    }
+                    else
+                    {
+                        messageLabel.Text = "No piece at this tile.";
+                    }
+                }
+                else
+                {
+                    // Attempt to move the selected piece (if no target piece is there).
+                    Piece destinationPiece = board.GetPieceAt(row, col);
+                    if (destinationPiece != null && destinationPiece != selectedPiece)
+                    {
+                        messageLabel.Text = "Move not allowed because another piece is already there!";
+                        return;
+                    }
+                    
+                    bool moveSuccessful = board.MovePiece(selectedPiece, row, col);
+                    if (moveSuccessful)
+                    {
+                        messageLabel.Text = $"Moved piece to [{row}, {col}]. Remaining Energy: {board.currentPlayer.Energy}";
+                        selectedPiece = null;
+                        UpdatePlayerInfoLabel();
                         this.Invalidate();
                     }
                     else
                     {
-                        messageLabel.Text = "Not your piece!";
+                        messageLabel.Text = "Move not allowed! Either not your turn, move out of range, no energy, or destination is the same as current position.";
                     }
-                }
-                else
-                {
-                    messageLabel.Text = "No piece at this tile.";
-                }
-            }
-            else
-            {
-                Piece destinationPiece = board.GetPieceAt(row, col);
-                if (destinationPiece != null && destinationPiece != selectedPiece)
-                {
-                    messageLabel.Text = "Move not allowed because another piece is already there!";
-                    return;
-                }
-
-                bool moveSuccessful = board.MovePiece(selectedPiece, row, col);
-                if (moveSuccessful)
-                {
-                    messageLabel.Text = $"Moved piece to [{row}, {col}]. Remaining Energy: {board.currentPlayer.Energy}";
-                    selectedPiece = null;
-                    UpdatePlayerInfoLabel();
-                    this.Invalidate();
-                }
-                else
-                {
-                    messageLabel.Text = "Move not allowed! Either not your turn, move out of range, no energy, or destination is the same as current position.";
                 }
             }
         }
