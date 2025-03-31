@@ -13,8 +13,8 @@ namespace DungeonChess.Win
         private Piece selectedPiece = null;
         private Button endTurnButton;
         private const int TileSize = 50;
-        private const int BoardSize = 8; // Updated to 8x8 board.
-        
+        private const int BoardSize = 8; // 8x8 board
+
         public MainForm()
         {
             // Set form title and client size: width is doubled.
@@ -26,27 +26,42 @@ namespace DungeonChess.Win
             this.KeyDown += MainForm_KeyDown;
             this.MouseClick += MainForm_MouseClick;
 
-            board = new Board(); // Core logic reference.
-                    
-            // Status message label.
+            board = new Board(); // Core logic reference
+
+            // -------------------------
+            // 1. MESSAGE LABEL (TOP-RIGHT)
+            // -------------------------
             messageLabel = new Label();
             messageLabel.Text = "Welcome to Dungeon Chess!";
             messageLabel.ForeColor = Color.White;
             messageLabel.Font = new Font("Consolas", 12);
-            messageLabel.Location = new Point(10, TileSize * BoardSize + 5);
-            messageLabel.AutoSize = true;
+            messageLabel.BackColor = Color.Transparent;   // Ensure it shows over black form background
+            // Place it on the right half, near the top. 
+            // We'll give it extra height (120) so wrapping text is visible.
+            messageLabel.Location = new Point(TileSize * BoardSize + 20, 5);
+            messageLabel.Size = new Size((TileSize * BoardSize) - 40, 120);
+            messageLabel.AutoSize = false;
+            messageLabel.Anchor = AnchorStyles.Top | AnchorStyles.Right;
             this.Controls.Add(messageLabel);
 
-            // Player info label.
+            // -------------------------
+            // 2. PLAYER INFO LABEL (below messageLabel)
+            // -------------------------
             playerInfoLabel = new Label();
             playerInfoLabel.ForeColor = Color.White;
             playerInfoLabel.Font = new Font("Consolas", 12);
-            playerInfoLabel.AutoSize = true;
-            playerInfoLabel.Location = new Point(10, TileSize * BoardSize + 30);
+            playerInfoLabel.BackColor = Color.Transparent;
+            // Place it just below the message label.
+            playerInfoLabel.Location = new Point(TileSize * BoardSize + 20, messageLabel.Bottom + 5);
+            playerInfoLabel.Size = new Size((TileSize * BoardSize) - 40, 40);
+            playerInfoLabel.AutoSize = false;
+            playerInfoLabel.Anchor = AnchorStyles.Top | AnchorStyles.Right;
             this.Controls.Add(playerInfoLabel);
             UpdatePlayerInfoLabel();
 
-            // End Turn button.
+            // -------------------------
+            // 3. END TURN BUTTON (BOTTOM-RIGHT)
+            // -------------------------
             endTurnButton = new Button();
             endTurnButton.Text = "End Turn";
             endTurnButton.Font = new Font("Consolas", 12);
@@ -59,9 +74,10 @@ namespace DungeonChess.Win
             this.Controls.Add(endTurnButton);
         }
 
+
         private void UpdatePlayerInfoLabel()
         {
-            playerInfoLabel.Text = $"Turn: {(board.currentPlayer == board.player1 ? "Player 1" : "Player 2")} | Energy: {board.currentPlayer.Energy} | HP: {board.currentPlayer.HP}";
+            playerInfoLabel.Text = $"Turn: {(board.currentPlayer == board.player1 ? "Player 1" : "Player 2")}\nEnergy: {board.currentPlayer.Energy} | HP: {board.currentPlayer.HP}";
         }
 
         protected override void OnPaint(PaintEventArgs e)
@@ -70,16 +86,22 @@ namespace DungeonChess.Win
             Graphics g = e.Graphics;
             Font font = new Font("Consolas", 16);
 
-            // 1. Draw the base board with alternating colors.
+            // 1. Draw the base board (only on the left half) using the tile grid.
+            // Here, we use the board's Tiles array. All traversable tiles will be white.
             for (int row = 0; row < BoardSize; row++)
             {
                 for (int col = 0; col < BoardSize; col++)
                 {
-                    // Alternate tile color: (row+col) even = black, odd = white.
-                    Color tileColor = ((row + col) % 2 == 0) ? Color.Black : Color.White;
+                    // If the tile is traversable, use white; if not, use its BackgroundColor (e.g. DarkGray).
+                    Color tileColor = board.Tiles[row, col].IsTraversable ? Color.White : board.Tiles[row, col].BackgroundColor;
                     using (SolidBrush sb = new SolidBrush(tileColor))
                     {
                         g.FillRectangle(sb, col * TileSize, row * TileSize, TileSize, TileSize);
+                    }
+                    // Draw a black border around each tile.
+                    using (Pen pen = new Pen(Color.Black))
+                    {
+                        g.DrawRectangle(pen, col * TileSize, row * TileSize, TileSize, TileSize);
                     }
                 }
             }
@@ -95,6 +117,9 @@ namespace DungeonChess.Win
                     {
                         // Skip the tile where the piece is.
                         if (row == selRow && col == selCol)
+                            continue;
+                        // Skip if tile is not traversable.
+                        if (!board.Tiles[row, col].IsTraversable)
                             continue;
 
                         bool isValidMove = false;
@@ -114,8 +139,8 @@ namespace DungeonChess.Win
                         {
                             var occupant = board.GetPieceAt(row, col);
                             Color highlightColor = (occupant != null && occupant != selectedPiece)
-                                ? Color.FromArgb(200, 255, 102, 102)    // Light red for blocked moves.
-                                : Color.FromArgb(200, 173, 216, 230);   // Light blue for available moves.
+                                ? Color.FromArgb(200, 255, 102, 102)  // Light red for blocked moves.
+                                : Color.FromArgb(200, 173, 216, 230); // Light blue for available moves.
                             using (SolidBrush sb = new SolidBrush(highlightColor))
                             {
                                 g.FillRectangle(sb, col * TileSize, row * TileSize, TileSize, TileSize);
@@ -142,13 +167,9 @@ namespace DungeonChess.Win
                             textBrush = new SolidBrush(piece.GetPlayer().PieceColor);
                     }
                     
-                    // Measure the size of the text.
                     SizeF textSize = g.MeasureString(tileText, font);
-                    
-                    // Calculate the center position of the tile.
                     float x = col * TileSize + (TileSize - textSize.Width) / 2;
                     float y = row * TileSize + (TileSize - textSize.Height) / 2;
-                    
                     g.DrawString(tileText, font, textBrush, x, y);
                 }
             }
@@ -162,6 +183,7 @@ namespace DungeonChess.Win
             }
             else if (e.KeyCode == Keys.Escape)
             {
+                // Deselect the active piece.
                 selectedPiece = null;
                 messageLabel.Text = "No piece selected.";
                 this.Invalidate();
@@ -182,9 +204,12 @@ namespace DungeonChess.Win
             int col = e.X / TileSize;
             int row = e.Y / TileSize;
             
+            // If click is outside board area (the board is drawn on the left half), deselect any piece.
             if (row >= BoardSize || col >= BoardSize)
             {
-                messageLabel.Text = "Click was outside the board.";
+                selectedPiece = null;
+                messageLabel.Text = "Click was outside the board. No piece selected.";
+                this.Invalidate();
                 return;
             }
             
@@ -197,7 +222,6 @@ namespace DungeonChess.Win
                     return;
                 }
 
-                // Check that the current player has enough energy.
                 if (board.currentPlayer.Energy <= 0)
                 {
                     messageLabel.Text = "Not enough energy to attack.";
@@ -232,9 +256,7 @@ namespace DungeonChess.Win
                 if (targetPiece.GetHP() == 0)
                 {
                     messageLabel.Text = $"Attacked piece at [{row}, {col}] for {selectedPiece.Attack} damage. Target piece has died!";
-                    // Remove the target piece from the board.
                     board.Pieces.Remove(targetPiece);
-                    // If the attacker is NOT ranged, move it into the target's square.
                     if (!selectedPiece.IsRanged)
                     {
                         selectedPiece.Row = row;
@@ -251,6 +273,15 @@ namespace DungeonChess.Win
             }
             else if (e.Button == MouseButtons.Left)
             {
+                // Left-click: If clicking on the same tile as the selected piece, deselect it.
+                if (selectedPiece != null && row == selectedPiece.Row && col == selectedPiece.Col)
+                {
+                    selectedPiece = null;
+                    messageLabel.Text = "No piece selected.";
+                    this.Invalidate();
+                    return;
+                }
+                
                 if (selectedPiece == null)
                 {
                     Piece clickedPiece = board.GetPieceAt(row, col);
@@ -269,7 +300,10 @@ namespace DungeonChess.Win
                     }
                     else
                     {
-                        messageLabel.Text = "No piece at this tile.";
+                        // Clicking on an empty tile deselects any active piece.
+                        selectedPiece = null;
+                        messageLabel.Text = "No piece at this tile. No piece selected.";
+                        this.Invalidate();
                     }
                 }
                 else
