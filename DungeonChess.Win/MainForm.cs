@@ -30,7 +30,7 @@ namespace DungeonChess.Win
                     
             // Status message label.
             messageLabel = new Label();
-            messageLabel.Text = "Hello World";
+            messageLabel.Text = "Welcome to Dungeon Chess!";
             messageLabel.ForeColor = Color.White;
             messageLabel.Font = new Font("Consolas", 12);
             messageLabel.Location = new Point(10, TileSize * BoardSize + 5);
@@ -232,9 +232,14 @@ namespace DungeonChess.Win
                 if (targetPiece.GetHP() == 0)
                 {
                     messageLabel.Text = $"Attacked piece at [{row}, {col}] for {selectedPiece.Attack} damage. Target piece has died!";
+                    // Remove the target piece from the board.
                     board.Pieces.Remove(targetPiece);
-                    selectedPiece.Row = row;
-                    selectedPiece.Col = col;
+                    // If the attacker is NOT ranged, move it into the target's square.
+                    if (!selectedPiece.IsRanged)
+                    {
+                        selectedPiece.Row = row;
+                        selectedPiece.Col = col;
+                    }
                 }
                 else
                 {
