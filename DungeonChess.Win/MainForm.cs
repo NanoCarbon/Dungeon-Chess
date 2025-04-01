@@ -1,5 +1,7 @@
 using System;
 using System.Drawing;
+using System.IO;
+using System.Text.Json;
 using System.Windows.Forms;
 using DungeonChess.Core;
 
@@ -35,9 +37,7 @@ namespace DungeonChess.Win
             messageLabel.Text = "Welcome to Dungeon Chess!";
             messageLabel.ForeColor = Color.White;
             messageLabel.Font = new Font("Consolas", 12);
-            messageLabel.BackColor = Color.Transparent;   // Ensure it shows over black form background
-            // Place it on the right half, near the top. 
-            // We'll give it extra height (120) so wrapping text is visible.
+            messageLabel.BackColor = Color.Transparent;
             messageLabel.Location = new Point(TileSize * BoardSize + 20, 5);
             messageLabel.Size = new Size((TileSize * BoardSize) - 40, 120);
             messageLabel.AutoSize = false;
@@ -51,7 +51,6 @@ namespace DungeonChess.Win
             playerInfoLabel.ForeColor = Color.White;
             playerInfoLabel.Font = new Font("Consolas", 12);
             playerInfoLabel.BackColor = Color.Transparent;
-            // Place it just below the message label.
             playerInfoLabel.Location = new Point(TileSize * BoardSize + 20, messageLabel.Bottom + 5);
             playerInfoLabel.Size = new Size((TileSize * BoardSize) - 40, 40);
             playerInfoLabel.AutoSize = false;
@@ -72,8 +71,21 @@ namespace DungeonChess.Win
             endTurnButton.BackColor = Color.Gray;
             endTurnButton.Click += EndTurnButton_Click;
             this.Controls.Add(endTurnButton);
-        }
 
+            // -------------------------
+            // 4. SAVE GAME BUTTON (BOTTOM-LEFT)
+            // -------------------------
+            Button saveGameButton = new Button();
+            saveGameButton.Text = "Save Game";
+            saveGameButton.Font = new Font("Consolas", 12);
+            saveGameButton.Size = new Size(100, 40);
+            saveGameButton.Location = new Point(10, this.ClientSize.Height - 50);
+            saveGameButton.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
+            saveGameButton.ForeColor = Color.White;
+            saveGameButton.BackColor = Color.Gray;
+            saveGameButton.Click += SaveGameButton_Click;
+            this.Controls.Add(saveGameButton);
+        }
 
         private void UpdatePlayerInfoLabel()
         {
@@ -87,18 +99,15 @@ namespace DungeonChess.Win
             Font font = new Font("Consolas", 16);
 
             // 1. Draw the base board (only on the left half) using the tile grid.
-            // Here, we use the board's Tiles array. All traversable tiles will be white.
             for (int row = 0; row < BoardSize; row++)
             {
                 for (int col = 0; col < BoardSize; col++)
                 {
-                    // If the tile is traversable, use white; if not, use its BackgroundColor (e.g. DarkGray).
                     Color tileColor = board.Tiles[row, col].IsTraversable ? Color.White : board.Tiles[row, col].BackgroundColor;
                     using (SolidBrush sb = new SolidBrush(tileColor))
                     {
                         g.FillRectangle(sb, col * TileSize, row * TileSize, TileSize, TileSize);
                     }
-                    // Draw a black border around each tile.
                     using (Pen pen = new Pen(Color.Black))
                     {
                         g.DrawRectangle(pen, col * TileSize, row * TileSize, TileSize, TileSize);
@@ -115,14 +124,11 @@ namespace DungeonChess.Win
                 {
                     for (int col = 0; col < BoardSize; col++)
                     {
-                        // Skip the tile where the piece is.
                         if (row == selRow && col == selCol)
                             continue;
-                        // Skip tiles that are not traversable.
                         if (!board.Tiles[row, col].IsTraversable)
                             continue;
 
-                        // Calculate Chebyshev distance.
                         int dx = Math.Abs(row - selRow);
                         int dy = Math.Abs(col - selCol);
                         int distance = Math.Max(dx, dy);
@@ -130,36 +136,29 @@ namespace DungeonChess.Win
                         bool movementValid = false;
                         bool attackValid = false;
 
-                        // Check movement validity.
                         if (selectedPiece.MovementBehavior != null)
                             movementValid = selectedPiece.MovementBehavior.IsMoveValid(selectedPiece, row, col, board);
                         else
                             movementValid = (distance <= selectedPiece.MovementRange);
 
-                        // Check attack validity.
                         if (selectedPiece.AttackBehavior != null)
                             attackValid = selectedPiece.AttackBehavior.IsAttackValid(selectedPiece, row, col, board);
                         else
                             attackValid = (distance <= selectedPiece.AttackRange);
 
-                        // Determine highlight color.
                         Color? highlightColor = null;
                         if (movementValid && attackValid)
                         {
-                            // Both valid: light yellow.
                             highlightColor = Color.FromArgb(200, 255, 255, 224);
                         }
                         else if (!movementValid && attackValid)
                         {
-                            // Only valid for attack: light green.
                             highlightColor = Color.FromArgb(200, 144, 238, 144);
                         }
                         else if (movementValid && !attackValid)
                         {
-                            // Only valid for movement: light blue.
                             highlightColor = Color.FromArgb(200, 173, 216, 230);
                         }
-                        // Else, no highlight.
 
                         if (highlightColor.HasValue)
                         {
@@ -183,10 +182,7 @@ namespace DungeonChess.Win
                     if (piece != null)
                     {
                         tileText = $"{piece.Symbol}";
-                        if (piece == selectedPiece)
-                            textBrush = Brushes.Red;
-                        else
-                            textBrush = new SolidBrush(piece.GetPlayer().PieceColor);
+                        textBrush = piece == selectedPiece ? Brushes.Red : new SolidBrush(piece.GetPlayer().PieceColor);
                     }
                     
                     SizeF textSize = g.MeasureString(tileText, font);
@@ -219,6 +215,29 @@ namespace DungeonChess.Win
             messageLabel.Text = "Turn ended.";
             UpdatePlayerInfoLabel();
             this.Invalidate();
+        }
+
+        // New event handler to save the game state.
+        private void SaveGameButton_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                BoardState state = board.GetBoardState();
+                string json = JsonSerializer.Serialize(state, new JsonSerializerOptions { WriteIndented = true });
+                string baseDir = AppDomain.CurrentDomain.BaseDirectory;
+                string saveFolder = Path.Combine(baseDir, "saves");
+                if (!Directory.Exists(saveFolder))
+                {
+                    Directory.CreateDirectory(saveFolder);
+                }
+                string saveFilePath = Path.Combine(saveFolder, "save_current.json");
+                File.WriteAllText(saveFilePath, json);
+                messageLabel.Text = "Game state saved successfully!";
+            }
+            catch (Exception ex)
+            {
+                messageLabel.Text = "Error saving game state: " + ex.Message;
+            }
         }
 
         private void MainForm_MouseClick(object sender, MouseEventArgs e)
@@ -305,10 +324,8 @@ namespace DungeonChess.Win
                 this.Invalidate();
                 return;
             }
-
             else if (e.Button == MouseButtons.Left)
             {
-                // Left-click: If clicking on the same tile as the selected piece, deselect it.
                 if (selectedPiece != null && row == selectedPiece.Row && col == selectedPiece.Col)
                 {
                     selectedPiece = null;
@@ -335,7 +352,6 @@ namespace DungeonChess.Win
                     }
                     else
                     {
-                        // Clicking on an empty tile deselects any active piece.
                         selectedPiece = null;
                         messageLabel.Text = "No piece at this tile. No piece selected.";
                         this.Invalidate();

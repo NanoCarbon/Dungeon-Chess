@@ -17,6 +17,10 @@ public class Piece
     private int hp;
     private Player player;
 
+<<<<<<< HEAD
+=======
+    // Primary constructor that takes a PieceType enum.
+>>>>>>> Serialization
     public Piece(int row, int col, Player player, PieceType type)
     {
         Row = row;
@@ -101,6 +105,12 @@ public class Piece
                 IsRanged = false;
                 break;
         }
+    }
+
+    // Overload constructor to accept a piece type as a string.
+    public Piece(int row, int col, Player player, string pieceType)
+        : this(row, col, player, (PieceType)Enum.Parse(typeof(PieceType), pieceType))
+    {
     }
 
     public int GetHP() => hp;
