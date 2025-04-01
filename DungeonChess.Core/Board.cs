@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
@@ -54,7 +55,7 @@ namespace DungeonChess.Core
 
             // Read JSON from the external file.
             string saveFilePath = Path.Combine("saves", "save_0001.json");
-            Console.WriteLine("Looking for save file at: " + Path.GetFullPath(saveFilePath));
+            Debug.WriteLine("Looking for save file at: " + Path.GetFullPath(saveFilePath));
             if (!File.Exists(saveFilePath))
             {
                 throw new FileNotFoundException($"Save file not found: {saveFilePath}");
