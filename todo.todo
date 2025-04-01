@@ -1,0 +1,94 @@
+
+---
+    
+    # Dungeon Chess TODO List
+    
+    ---
+    
+    ## Core Mechanics
+    
+    ### Player & Inventory
+    - [x] **Player Class:**  
+      - Add a player Class @done (3/29/2025, 4:29:28 PM)  
+      - Associate pieces to a player Class @done (3/29/2025, 4:29:30 PM)  
+      - Limit movement only to pieces of that player Class @done (3/29/2025, 4:29:33 PM)  
+      - End Turn Button and Energy Reset @done (3/29/2025, 4:29:35 PM)
+    - [ ] Add pieces to inventory  
+    - [ ] Add items to inventory  
+    - [ ] Save player information  
+    - [ ] Retrieve player information  
+    
+    ### Economy & Resource Management
+    - [ ] Implement coin drops from defeated enemies  
+    - [ ] Add coins to the player's inventory  
+    - [ ] Create a coin spending system in the shop  
+    
+    ---
+    
+    ## Movement Limitations
+    ✔ - Implement max movement range per piece @done (3/29/2025, 1:16:32 PM) 
+    ✔ - Add movement energy cost and/or limitations @done (3/29/2025, 4:28:54 PM)
+    ✔ - Add tiles that are impassable for all pieces @done (3/31/2025, 8:11:17 PM)
+    - [ ] Design and implement different board states (e.g., obstacles, terrain types)
+    
+    ---
+    
+    ## Combat Mechanism
+    ✔ - Define damage values and attack ranges for pieces @done (3/29/2025, 11:52:38 PM)
+    ✔ - Implement methods for pieces to deal and receive damage @done (3/29/2025, 11:52:49 PM)
+    ✔ - Determine conditions for piece elimination (HP reaching 0) @done (3/29/2025, 11:52:57 PM)
+    - [ ] Implement knockback attacks  
+    - [ ] Implement stun attacks (e.g., limiting movement to zero for a turn)  
+    - [ ] Implement piercing attacks (damage through multiple tiles)  
+    ✔ -  Implement ranged-only attacks @done (3/29/2025, 11:53:08 PM)
+    ✔ - Separate out attack and movement range logic @done (3/31/2025, 8:11:20 PM)
+
+    ---
+    
+    ## Piece Variety & Upgrades
+    ✔ - Create a second type of piece with unique movement/combat rules (e.g., a Rook or Knight variant) @done (3/31/2025, 9:41:44 PM)
+    ✔ - Consider using dependency injection to add piece behaviors instead of deep inheritance hierarchies @done (3/29/2025, 11:53:27 PM)
+    - Introduce new piece types:  
+      ✔ - **Archer (A):** Ranged unit that attacks targets up to 3 squares away @done (3/29/2025, 11:53:58 PM)
+      - [ ] **Chaplain (C):** Healer that restores health to adjacent friendly pieces  
+      ✔ -  **King:** The primary AI-controlled target with high HP (and balanced for ranged threats) @done (3/29/2025, 11:53:54 PM)
+    - [ ] Implement merging mechanics:  
+      - [ ] Three basic pawns (default 1 HP) merge into a Super Pawn (with increased HP/attack, and possibly altered movement resembling a knight or bishop)  
+      - [ ] Allow further merges to form advanced pieces (e.g., a "horse" with full L-shaped movement, or an upgraded bishop with extra movement options)
+    - [ ] Use text styling (capitalization, font colors, or even font type) to visually indicate piece levels/upgrades  
+    - [ ] Introduce chance-based "shiny merges" that randomly boost stats or add special effects
+    
+    ---
+    
+    ## Turn System
+    ☐ - Add a turn counter to track rounds/movements
+    ✔ - Limit the number of moves or actions per turn @done (3/31/2025, 8:12:24 PM)
+    - [x] Update game state to switch turns and reflect changes in UI @done (3/29/2025, 4:33:00 PM)  
+    - [ ] Implement end battle conditions (e.g., when the King is captured)
+    
+    ---
+    
+    ## UI & Integration (WinForms)
+    - [ ] Update board drawing to reflect movement and combat feedback  
+    - [x] Display current turn count and active player information @done (3/29/2025, 4:30:37 PM)  
+    - [x] Highlight possible moves/attack ranges on the board @done (3/29/2025, 4:30:42 PM)  
+    - [ ] Design and implement a Start Menu  
+    - [ ] Implement New Game functionality  
+    - [ ] Implement Save Game functionality
+    
+    ---
+    
+    ## Shop & Advanced Economy
+    - [ ] Implement a shop system for purchasing upgrades, buffs, and new pieces using coins  
+    - [ ] Design the shop UI layout (e.g., left side for shop items, right side for player's inventory/army)  
+    - [ ] Limit the number of piece points (or inventory capacity) to balance acquisitions  
+    - [ ] Introduce a rare item shop offering unique or upgraded pieces/buffs  
+    - [ ] Allow players to invest coins to expand their inventory/army capacity
+    
+    ---
+    
+    ## Future Enhancements
+    - [ ] Create a room/level progression system with increasing difficulty  
+    - [ ] Develop the end goal mechanics (e.g., capture or overthrow the King)  
+    - [ ] Balance ranged piece damage versus the King's high HP to ensure a fair challenge
+    
