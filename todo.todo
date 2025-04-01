@@ -46,9 +46,9 @@
     ---
     
     ## Piece Variety & Upgrades
-    - [ ] Create a second type of piece with unique movement/combat rules (e.g., a Rook or Knight variant)  
+    ✔ - Create a second type of piece with unique movement/combat rules (e.g., a Rook or Knight variant) @done (3/31/2025, 9:41:44 PM)
     ✔ - Consider using dependency injection to add piece behaviors instead of deep inheritance hierarchies @done (3/29/2025, 11:53:27 PM)
-    - [ ] Introduce new piece types:  
+    - Introduce new piece types:  
       ✔ - **Archer (A):** Ranged unit that attacks targets up to 3 squares away @done (3/29/2025, 11:53:58 PM)
       - [ ] **Chaplain (C):** Healer that restores health to adjacent friendly pieces  
       ✔ -  **King:** The primary AI-controlled target with high HP (and balanced for ranged threats) @done (3/29/2025, 11:53:54 PM)

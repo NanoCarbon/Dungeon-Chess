@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.IO;
+using System.Text.Json;
 
 namespace DungeonChess.Core
 {
@@ -42,51 +44,50 @@ namespace DungeonChess.Core
                         Tiles[row, col].IsTraversable = false;
                         Tiles[row, col].BackgroundColor = Color.DarkGray;
                     }
+                    else
+                    {
+                        Tiles[row, col].IsTraversable = true;
+                        Tiles[row, col].BackgroundColor = Color.White;
+                    }
                 }
             }
 
-            // --- Player 1 (top side) ---
-            // Row 0: Back row with standard chess order:
-            // Rook, Knight, Bishop, Queen, King, Bishop, Knight, Rook.
-            for (int col = 0; col < boardSize; col++)
+            // Read JSON from the external file.
+            string saveFilePath = Path.Combine("saves", "save_0001.json");
+            Console.WriteLine("Looking for save file at: " + Path.GetFullPath(saveFilePath));
+            if (!File.Exists(saveFilePath))
             {
-                if (col == 0 || col == boardSize - 1)
-                    Pieces.Add(new Piece(0, col, player1, PieceType.Rook));
-                else if (col == 1 || col == 6)
-                    Pieces.Add(new Piece(0, col, player1, PieceType.Knight));
-                else if (col == 3)
-                    Pieces.Add(new Piece(0, col, player1, PieceType.Queen));
-                else if (col == 4)
-                    Pieces.Add(new Piece(0, col, player1, PieceType.King));
-                else // col 2 and col 5.
-                    Pieces.Add(new Piece(0, col, player1, PieceType.Bishop));
+                throw new FileNotFoundException($"Save file not found: {saveFilePath}");
             }
-            // Row 1: Instead of pawns, use archers for Player 1.
-            for (int col = 0; col < boardSize; col++)
+            string json = File.ReadAllText(saveFilePath);
+            
+            // Deserialize JSON.
+            BoardState state = JsonSerializer.Deserialize<BoardState>(json);
+            if (state != null)
             {
-                Pieces.Add(new Piece(1, col, player1, PieceType.Archer));
-            }
-
-            // --- Player 2 (bottom side) ---
-            // Row 6: Pawns for Player 2.
-            for (int col = 0; col < boardSize; col++)
-            {
-                Pieces.Add(new Piece(6, col, player2, PieceType.Pawn));
-            }
-            // Row 7: Back row for Player 2:
-            // Rook, Knight, Bishop, Queen, King, Bishop, Knight, Rook.
-            for (int col = 0; col < boardSize; col++)
-            {
-                if (col == 0 || col == boardSize - 1)
-                    Pieces.Add(new Piece(7, col, player2, PieceType.Rook));
-                else if (col == 1 || col == 6)
-                    Pieces.Add(new Piece(7, col, player2, PieceType.Knight));
-                else if (col == 3)
-                    Pieces.Add(new Piece(7, col, player2, PieceType.Queen));
-                else if (col == 4)
-                    Pieces.Add(new Piece(7, col, player2, PieceType.King));
-                else // col 2 and col 5.
-                    Pieces.Add(new Piece(7, col, player2, PieceType.Bishop));
+                // Optionally, update board size using state.BoardSize if needed.
+                // Initialize Tiles based on JSON.
+                foreach (TileData td in state.Tiles)
+                {
+                    // For each tile in the JSON, update the corresponding tile in our Tiles array.
+                    if (td.Row < boardSize && td.Col < boardSize)
+                    {
+                        Tiles[td.Row, td.Col].IsTraversable = td.IsTraversable;
+                        // Convert color string to a Color. For simplicity, assume "White" or "DarkGray".
+                        Tiles[td.Row, td.Col].BackgroundColor = td.BackgroundColor == "DarkGray" ? Color.DarkGray : Color.White;
+                    }
+                }
+                // Deserialize pieces.
+                if (state.Pieces != null)
+                {
+                    foreach (PieceData pd in state.Pieces)
+                    {
+                        PieceType type = (PieceType)Enum.Parse(typeof(PieceType), pd.Type);
+                        Player owner = (pd.Player == 1) ? player1 : player2;
+                        Piece piece = new Piece(pd.Row, pd.Col, owner, type);
+                        Pieces.Add(piece);
+                    }
+                }
             }
         }
 
@@ -102,54 +103,60 @@ namespace DungeonChess.Core
 
         public bool MovePiece(Piece piece, int newRow, int newCol)
         {
-            // Check if the new position is the same as the current position.
             if (piece.Row == newRow && piece.Col == newCol)
                 return false;
-
-            // Check that the piece belongs to the current player.
             if (piece.GetPlayer() != currentPlayer)
                 return false;
-
-            // Check if the destination tile is occupied by a different piece.
             Piece occupant = GetPieceAt(newRow, newCol);
             if (occupant != null && occupant != piece)
                 return false;
-
-            // Check if the destination tile is traversable.
             if (!Tiles[newRow, newCol].IsTraversable)
                 return false;
-
-            // Calculate Chebyshev distance.
             int dx = Math.Abs(newRow - piece.Row);
             int dy = Math.Abs(newCol - piece.Col);
             int distance = Math.Max(dx, dy);
-
             if (distance > piece.MovementRange)
                 return false;
-
-            // Check movement behavior if defined.
             if (piece.MovementBehavior != null)
             {
                 if (!piece.MovementBehavior.IsMoveValid(piece, newRow, newCol, this))
                     return false;
             }
-
-            // Check that the current player has enough energy.
             if (currentPlayer.Energy <= 0)
                 return false;
-
-            // Valid move: deduct energy and perform the move.
             currentPlayer.Energy -= 1;
             piece.Row = newRow;
             piece.Col = newCol;
             return true;
         }
 
-        // EndTurn: switches the turn and resets the new current player's energy.
         public void EndTurn()
         {
             currentPlayer = (currentPlayer == player1) ? player2 : player1;
             currentPlayer.Energy = currentPlayer.StartingEnergy;
         }
+    }
+
+    public class BoardState
+    {
+        public int BoardSize { get; set; }
+        public List<TileData> Tiles { get; set; }
+        public List<PieceData> Pieces { get; set; }
+    }
+
+    public class TileData
+    {
+        public int Row { get; set; }
+        public int Col { get; set; }
+        public bool IsTraversable { get; set; }
+        public string BackgroundColor { get; set; }
+    }
+
+    public class PieceData
+    {
+        public int Row { get; set; }
+        public int Col { get; set; }
+        public int Player { get; set; }
+        public string Type { get; set; }
     }
 }
