@@ -17,10 +17,6 @@ public class Piece
     private int hp;
     private Player player;
 
-<<<<<<< HEAD
-=======
-    // Primary constructor that takes a PieceType enum.
->>>>>>> Serialization
     public Piece(int row, int col, Player player, PieceType type)
     {
         Row = row;
