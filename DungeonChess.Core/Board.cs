@@ -53,9 +53,10 @@ namespace DungeonChess.Core
                 }
             }
 
-            // Read JSON from the external file.
-            string saveFilePath = Path.Combine("saves", "save_0001.json");
-            Debug.WriteLine("Looking for save file at: " + Path.GetFullPath(saveFilePath));
+            // Read JSON from the external file using the application's base directory.
+            string baseDir = AppDomain.CurrentDomain.BaseDirectory;
+            string saveFilePath = Path.Combine(baseDir, "saves", "save_current.json");
+            Debug.WriteLine("Looking for save file at: " + saveFilePath);
             if (!File.Exists(saveFilePath))
             {
                 throw new FileNotFoundException($"Save file not found: {saveFilePath}");
@@ -90,6 +91,57 @@ namespace DungeonChess.Core
                     }
                 }
             }
+        }
+
+        // New method to capture the game state (including player info) for saving.
+        public BoardState GetBoardState()
+        {
+            var state = new BoardState();
+            state.BoardSize = boardSize;
+            state.Tiles = new List<TileData>();
+            for (int row = 0; row < boardSize; row++)
+            {
+                for (int col = 0; col < boardSize; col++)
+                {
+                    state.Tiles.Add(new TileData
+                    {
+                        Row = row,
+                        Col = col,
+                        IsTraversable = Tiles[row, col].IsTraversable,
+                        BackgroundColor = Tiles[row, col].BackgroundColor == Color.DarkGray ? "DarkGray" : "White"
+                    });
+                }
+            }
+            
+            state.Pieces = new List<PieceData>();
+            foreach (var piece in Pieces)
+            {
+                state.Pieces.Add(new PieceData
+                {
+                    Row = piece.Row,
+                    Col = piece.Col,
+                    // Use the PieceType property (assumed to be of type PieceType) so that the saved value matches your enum.
+                    Player = (piece.GetPlayer() == player1) ? 1 : 2,
+                    Type = piece.Type.ToString()  // Updated to use the enum value.
+                });
+            }
+                        // Save player data.
+            state.Player1 = new PlayerData
+            {
+                Energy = player1.Energy,
+                HP = player1.HP,
+                PieceColor = player1.PieceColor.Name
+            };
+            state.Player2 = new PlayerData
+            {
+                Energy = player2.Energy,
+                HP = player2.HP,
+                PieceColor = player2.PieceColor.Name
+            };
+            
+            state.CurrentPlayer = (currentPlayer == player1) ? 1 : 2;
+            
+            return state;
         }
 
         public Piece GetPieceAt(int row, int col)
@@ -138,11 +190,15 @@ namespace DungeonChess.Core
         }
     }
 
+    // Updated BoardState class with player information.
     public class BoardState
     {
         public int BoardSize { get; set; }
         public List<TileData> Tiles { get; set; }
         public List<PieceData> Pieces { get; set; }
+        public PlayerData Player1 { get; set; }
+        public PlayerData Player2 { get; set; }
+        public int CurrentPlayer { get; set; }
     }
 
     public class TileData
@@ -159,5 +215,13 @@ namespace DungeonChess.Core
         public int Col { get; set; }
         public int Player { get; set; }
         public string Type { get; set; }
+    }
+
+    // New class to capture player details.
+    public class PlayerData
+    {
+        public int Energy { get; set; }
+        public int HP { get; set; }
+        public string PieceColor { get; set; }
     }
 }
