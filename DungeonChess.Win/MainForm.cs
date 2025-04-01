@@ -118,30 +118,52 @@ namespace DungeonChess.Win
                         // Skip the tile where the piece is.
                         if (row == selRow && col == selCol)
                             continue;
-                        // Skip if tile is not traversable.
+                        // Skip tiles that are not traversable.
                         if (!board.Tiles[row, col].IsTraversable)
                             continue;
 
-                        bool isValidMove = false;
-                        if (selectedPiece.MovementBehavior != null)
-                        {
-                            isValidMove = selectedPiece.MovementBehavior.IsMoveValid(selectedPiece, row, col, board);
-                        }
-                        else
-                        {
-                            int dx = Math.Abs(row - selRow);
-                            int dy = Math.Abs(col - selCol);
-                            int distance = Math.Max(dx, dy);
-                            isValidMove = (distance <= selectedPiece.MovementRange);
-                        }
+                        // Calculate Chebyshev distance.
+                        int dx = Math.Abs(row - selRow);
+                        int dy = Math.Abs(col - selCol);
+                        int distance = Math.Max(dx, dy);
 
-                        if (isValidMove)
+                        bool movementValid = false;
+                        bool attackValid = false;
+
+                        // Check movement validity.
+                        if (selectedPiece.MovementBehavior != null)
+                            movementValid = selectedPiece.MovementBehavior.IsMoveValid(selectedPiece, row, col, board);
+                        else
+                            movementValid = (distance <= selectedPiece.MovementRange);
+
+                        // Check attack validity.
+                        if (selectedPiece.AttackBehavior != null)
+                            attackValid = selectedPiece.AttackBehavior.IsAttackValid(selectedPiece, row, col, board);
+                        else
+                            attackValid = (distance <= selectedPiece.AttackRange);
+
+                        // Determine highlight color.
+                        Color? highlightColor = null;
+                        if (movementValid && attackValid)
                         {
-                            var occupant = board.GetPieceAt(row, col);
-                            Color highlightColor = (occupant != null && occupant != selectedPiece)
-                                ? Color.FromArgb(200, 255, 102, 102)  // Light red for blocked moves.
-                                : Color.FromArgb(200, 173, 216, 230); // Light blue for available moves.
-                            using (SolidBrush sb = new SolidBrush(highlightColor))
+                            // Both valid: light yellow.
+                            highlightColor = Color.FromArgb(200, 255, 255, 224);
+                        }
+                        else if (!movementValid && attackValid)
+                        {
+                            // Only valid for attack: light green.
+                            highlightColor = Color.FromArgb(200, 144, 238, 144);
+                        }
+                        else if (movementValid && !attackValid)
+                        {
+                            // Only valid for movement: light blue.
+                            highlightColor = Color.FromArgb(200, 173, 216, 230);
+                        }
+                        // Else, no highlight.
+
+                        if (highlightColor.HasValue)
+                        {
+                            using (SolidBrush sb = new SolidBrush(highlightColor.Value))
                             {
                                 g.FillRectangle(sb, col * TileSize, row * TileSize, TileSize, TileSize);
                             }
@@ -213,21 +235,21 @@ namespace DungeonChess.Win
                 return;
             }
             
+            // Right-click: Attempt an attack.
             if (e.Button == MouseButtons.Right)
             {
-                // Right-click: Attempt an attack.
                 if (selectedPiece == null)
                 {
                     messageLabel.Text = "No piece selected for attack.";
                     return;
                 }
-
+                
                 if (board.currentPlayer.Energy <= 0)
                 {
                     messageLabel.Text = "Not enough energy to attack.";
                     return;
                 }
-
+                
                 Piece targetPiece = board.GetPieceAt(row, col);
                 if (targetPiece == null)
                 {
@@ -235,21 +257,33 @@ namespace DungeonChess.Win
                     return;
                 }
                 
-                int dx = Math.Abs(row - selectedPiece.Row);
-                int dy = Math.Abs(col - selectedPiece.Col);
-                int distance = Math.Max(dx, dy);
-                if (distance > selectedPiece.MovementRange)
+                // Use the attack behavior if defined; otherwise, fall back to simple distance check.
+                bool isAttackValid = false;
+                if (selectedPiece.AttackBehavior != null)
+                {
+                    isAttackValid = selectedPiece.AttackBehavior.IsAttackValid(selectedPiece, row, col, board);
+                }
+                else
+                {
+                    int dx = Math.Abs(row - selectedPiece.Row);
+                    int dy = Math.Abs(col - selectedPiece.Col);
+                    int distance = Math.Max(dx, dy);
+                    isAttackValid = (distance <= selectedPiece.AttackRange);
+                }
+
+                if (!isAttackValid)
                 {
                     messageLabel.Text = "Target is out of attack range.";
                     return;
                 }
-                
+
                 if (targetPiece.GetPlayer() == selectedPiece.GetPlayer())
                 {
                     messageLabel.Text = "Cannot attack your own piece.";
                     return;
                 }
                 
+                // Perform the attack.
                 targetPiece.TakeDamage(selectedPiece.Attack);
                 board.currentPlayer.Energy -= 1;
                 
@@ -271,6 +305,7 @@ namespace DungeonChess.Win
                 this.Invalidate();
                 return;
             }
+
             else if (e.Button == MouseButtons.Left)
             {
                 // Left-click: If clicking on the same tile as the selected piece, deselect it.
