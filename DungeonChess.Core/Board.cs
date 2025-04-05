@@ -21,7 +21,7 @@ namespace DungeonChess.Core
         // The grid of tiles.
         public Tile[,] Tiles { get; private set; }
 
-        public Board()
+        public Board(string saveFileName)
         {
             // Initialize players and assign colors.
             player1 = new Player();
@@ -53,9 +53,11 @@ namespace DungeonChess.Core
                 }
             }
 
-            // Read JSON from the external file using the application's base directory.
+            // Use the relative path to the DungeonChess.Core/saves folder.
             string baseDir = AppDomain.CurrentDomain.BaseDirectory;
-            string saveFilePath = Path.Combine(baseDir, "saves", "save_current.json");
+            string saveFolder = Path.Combine(baseDir, "..", "..", "..", "..", "DungeonChess.Core", "saves");
+            string saveFilePath = Path.Combine(saveFolder, saveFileName);
+            
             Debug.WriteLine("Looking for save file at: " + saveFilePath);
             if (!File.Exists(saveFilePath))
             {

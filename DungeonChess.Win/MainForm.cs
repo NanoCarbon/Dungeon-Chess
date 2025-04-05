@@ -3,20 +3,27 @@ using System.Drawing;
 using System.IO;
 using System.Text.Json;
 using System.Windows.Forms;
+using System.Linq;
 using DungeonChess.Core;
 
 namespace DungeonChess.Win
 {
-    public class MainForm : Form
+    public partial class MainForm : Form
     {
+        // Event to notify when the game is over.
+        public event EventHandler<int> GameOver;
         private Board board;
         private string saveFileName;
         private Label messageLabel;
         private Label playerInfoLabel;
         private Piece selectedPiece = null;
         private Button endTurnButton;
+        private CheckBox autoEndTurnCheckBox; // New checkbox for auto end turn
         private const int TileSize = 50;
         private const int BoardSize = 8; // 8x8 board
+        // New fields to record if each player started with a king.
+        private bool player1StartedWithKing;
+        private bool player2StartedWithKing;
 
         public MainForm(string saveFileName)
         {
@@ -31,6 +38,10 @@ namespace DungeonChess.Win
             this.MouseClick += MainForm_MouseClick;
 
             board = new Board(saveFileName); // Core logic reference
+
+            // Record the starting king status.
+            player1StartedWithKing = board.Pieces.Any(p => p.GetPlayer() == board.player1 && p.Type == PieceType.King);
+            player2StartedWithKing = board.Pieces.Any(p => p.GetPlayer() == board.player2 && p.Type == PieceType.King);
 
             // -------------------------
             // 1. MESSAGE LABEL (TOP-RIGHT)
@@ -50,7 +61,6 @@ namespace DungeonChess.Win
             // 2. PLAYER INFO LABEL (below messageLabel)
             // -------------------------
             playerInfoLabel = new Label();
-            playerInfoLabel.ForeColor = Color.White;
             playerInfoLabel.Font = new Font("Consolas", 12);
             playerInfoLabel.BackColor = Color.Transparent;
             playerInfoLabel.Location = new Point(TileSize * BoardSize + 20, messageLabel.Bottom + 5);
@@ -74,6 +84,17 @@ namespace DungeonChess.Win
             endTurnButton.Click += EndTurnButton_Click;
             this.Controls.Add(endTurnButton);
 
+             // Auto End Turn CheckBox
+            autoEndTurnCheckBox = new CheckBox();
+            autoEndTurnCheckBox.Text = "Auto End Turn";
+            autoEndTurnCheckBox.Font = new Font("Consolas", 12);
+            autoEndTurnCheckBox.ForeColor = Color.White;
+            autoEndTurnCheckBox.BackColor = Color.Black;
+            autoEndTurnCheckBox.AutoSize = true;
+            // Position it above the End Turn button.
+            autoEndTurnCheckBox.Location = new Point(this.ClientSize.Width - 150, endTurnButton.Top - 30);
+            this.Controls.Add(autoEndTurnCheckBox);
+
             // -------------------------
             // 4. SAVE GAME BUTTON (BOTTOM-LEFT)
             // -------------------------
@@ -91,7 +112,52 @@ namespace DungeonChess.Win
 
         private void UpdatePlayerInfoLabel()
         {
+            // Highlight the label with the current player's color.
+            playerInfoLabel.ForeColor = board.currentPlayer.PieceColor;
             playerInfoLabel.Text = $"Turn: {(board.currentPlayer == board.player1 ? "Player 1" : "Player 2")}\nEnergy: {board.currentPlayer.Energy} | HP: {board.currentPlayer.HP}";
+        }
+
+        // Helper to check auto end turn condition.
+        private void CheckAutoEndTurn()
+        {
+            if (autoEndTurnCheckBox != null && autoEndTurnCheckBox.Checked && board.currentPlayer.Energy <= 0)
+            {
+                board.EndTurn();
+                messageLabel.Text = "Turn auto-ended.";
+                UpdatePlayerInfoLabel();
+                this.Invalidate();
+            }
+        }
+
+        // In your win condition check, instead of directly closing and creating a new StartForm,
+        // raise the GameOver event:
+        private void CheckWinCondition()
+        {
+            bool player1HasKing = board.Pieces.Any(p => p.GetPlayer() == board.player1 && p.Type == PieceType.King);
+            bool player2HasKing = board.Pieces.Any(p => p.GetPlayer() == board.player2 && p.Type == PieceType.King);
+            bool player1HasAnyPieces = board.Pieces.Any(p => p.GetPlayer() == board.player1);
+            bool player2HasAnyPieces = board.Pieces.Any(p => p.GetPlayer() == board.player2);
+
+            if (!player1HasAnyPieces || (player1StartedWithKing && !player1HasKing))
+            {
+                // Raise event for game over with Player 2 winning.
+                GameOver?.Invoke(this, 2);
+            }
+            else if (!player2HasAnyPieces || (player2StartedWithKing && !player2HasKing))
+            {
+                // Raise event for game over with Player 1 winning.
+                GameOver?.Invoke(this, 1);
+            }
+        }
+
+        // Helper method to show the game over popup.
+        private void ShowGameOver(int winningPlayer)
+        {
+            GameOverForm gameOverForm = new GameOverForm(winningPlayer);
+            gameOverForm.ShowDialog();
+            this.Close();
+            StartForm startForm = new StartForm();
+            startForm.Show();
         }
 
         protected override void OnPaint(PaintEventArgs e)
@@ -324,6 +390,8 @@ namespace DungeonChess.Win
                 }
                 UpdatePlayerInfoLabel();
                 this.Invalidate();
+                CheckAutoEndTurn();
+                CheckWinCondition();
                 return;
             }
             else if (e.Button == MouseButtons.Left)
@@ -375,6 +443,8 @@ namespace DungeonChess.Win
                         selectedPiece = null;
                         UpdatePlayerInfoLabel();
                         this.Invalidate();
+                        CheckAutoEndTurn();
+                        CheckWinCondition();
                     }
                     else
                     {

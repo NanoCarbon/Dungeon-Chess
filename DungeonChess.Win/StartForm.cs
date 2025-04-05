@@ -5,13 +5,15 @@ using System.Windows.Forms;
 
 namespace DungeonChess.Win
 {
-    public class StartForm : Form
+    public partial class StartForm : Form
     {
         private Button newGameButton;
         private Button loadGameButton;
         private Label titleLabel;
         private TextBox saveFileTextBox;
-        
+        // Event to notify when the user requests to start a game.
+        public event EventHandler<string> StartGameRequested;
+
         public StartForm()
         {
             this.Text = "Dungeon Chess - Start";
@@ -41,7 +43,8 @@ namespace DungeonChess.Win
             newGameButton.Location = new Point((this.ClientSize.Width - newGameButton.Width) / 2, 120);
             newGameButton.Click += (sender, e) =>
             {
-                LaunchMainForm("save_0001.json");
+                // Raise the event with the save file name for a new game.
+                StartGameRequested?.Invoke(this, "save_0001.json");
             };
             this.Controls.Add(newGameButton);
             
@@ -58,21 +61,13 @@ namespace DungeonChess.Win
             {
                 string userInput = saveFileTextBox.Text.Trim();
                 // Default to "save_current.json" if nothing is typed.
-                string fileName = string.IsNullOrEmpty(userInput) 
-                    ? "save_current.json" 
+                string fileName = string.IsNullOrEmpty(userInput)
+                    ? "save_current.json"
                     : (userInput.EndsWith(".json", StringComparison.OrdinalIgnoreCase) ? userInput : userInput + ".json");
-                string baseDir = AppDomain.CurrentDomain.BaseDirectory;
-                string saveFolder = Path.Combine(baseDir, "..", "DungeonChess.Core", "saves");
-                string savePath = Path.Combine(saveFolder, fileName);
-                if (File.Exists(savePath))
-                {
-                    LaunchMainForm(fileName);
-                }
-                else
-                {
-                    MessageBox.Show($"Save file '{fileName}' not found.", "Load Game", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                }
+                // Simply raise the event with the provided file name.
+                StartGameRequested?.Invoke(this, fileName);
             };
+
             this.Controls.Add(loadGameButton);
             
             // TextBox for entering a custom save file name (placed below the Load Game button)
@@ -86,13 +81,6 @@ namespace DungeonChess.Win
             saveFileTextBox.PlaceholderText = "Enter save file name (optional)";
             this.Controls.Add(saveFileTextBox);
         }
-        
-        private void LaunchMainForm(string saveFileName)
-        {
-            this.Hide();
-            MainForm mainForm = new MainForm(saveFileName);
-            mainForm.FormClosed += (s, args) => this.Close();
-            mainForm.Show();
-        }
+
     }
 }

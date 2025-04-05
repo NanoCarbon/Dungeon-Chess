@@ -1,17 +1,18 @@
-using System;               // ✅ This is required
+using System;
 using System.Windows.Forms;
-using DungeonChess.Core;
+using DungeonChess.Win;
 
-namespace DungeonChess.Win
+namespace DungeonChess
 {
     static class Program
     {
-        [STAThread]          // This attribute ensures proper threading for WinForms
+        [STAThread]
         static void Main()
         {
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            Application.Run(new StartForm());
+            DungeonChessApplicationContext context = new DungeonChessApplicationContext();
+            Application.Run(context);
         }
     }
 }
