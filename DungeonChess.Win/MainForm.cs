@@ -10,6 +10,7 @@ namespace DungeonChess.Win
     public class MainForm : Form
     {
         private Board board;
+        private string saveFileName;
         private Label messageLabel;
         private Label playerInfoLabel;
         private Piece selectedPiece = null;
@@ -17,9 +18,10 @@ namespace DungeonChess.Win
         private const int TileSize = 50;
         private const int BoardSize = 8; // 8x8 board
 
-        public MainForm()
+        public MainForm(string saveFileName)
         {
             // Set form title and client size: width is doubled.
+            this.saveFileName = saveFileName;
             this.Text = "Dungeon Chess Board";
             this.ClientSize = new Size(TileSize * BoardSize * 2, (TileSize * BoardSize) + 100);
             this.BackColor = Color.Black;
@@ -28,7 +30,7 @@ namespace DungeonChess.Win
             this.KeyDown += MainForm_KeyDown;
             this.MouseClick += MainForm_MouseClick;
 
-            board = new Board(); // Core logic reference
+            board = new Board(saveFileName); // Core logic reference
 
             // -------------------------
             // 1. MESSAGE LABEL (TOP-RIGHT)
