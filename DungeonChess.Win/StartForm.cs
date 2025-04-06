@@ -1,6 +1,5 @@
 using System;
 using System.Drawing;
-using System.IO;
 using System.Windows.Forms;
 
 namespace DungeonChess.Win
@@ -17,11 +16,11 @@ namespace DungeonChess.Win
         public StartForm()
         {
             this.Text = "Dungeon Chess - Start";
-            this.ClientSize = new Size(400, 350);
+            this.ClientSize = new Size(850, 850); // updated size
             this.StartPosition = FormStartPosition.CenterScreen;
             this.BackColor = Color.Black;
             
-            // Title Label - spans the entire width for centered text.
+            // Title Label - spans the entire width.
             titleLabel = new Label();
             titleLabel.Text = "Dungeon Chess";
             titleLabel.Font = new Font("Arial", 24, FontStyle.Bold);
@@ -67,7 +66,6 @@ namespace DungeonChess.Win
                 // Simply raise the event with the provided file name.
                 StartGameRequested?.Invoke(this, fileName);
             };
-
             this.Controls.Add(loadGameButton);
             
             // TextBox for entering a custom save file name (placed below the Load Game button)
@@ -81,6 +79,5 @@ namespace DungeonChess.Win
             saveFileTextBox.PlaceholderText = "Enter save file name (optional)";
             this.Controls.Add(saveFileTextBox);
         }
-
     }
 }

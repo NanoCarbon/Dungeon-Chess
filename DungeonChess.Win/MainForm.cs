@@ -30,7 +30,7 @@ namespace DungeonChess.Win
             // Set form title and client size: width is doubled.
             this.saveFileName = saveFileName;
             this.Text = "Dungeon Chess Board";
-            this.ClientSize = new Size(TileSize * BoardSize * 2, (TileSize * BoardSize) + 100);
+            this.ClientSize = new Size(850, 850); // updated size
             this.BackColor = Color.Black;
             this.DoubleBuffered = true;
             this.KeyPreview = true;
@@ -108,6 +108,25 @@ namespace DungeonChess.Win
             saveGameButton.BackColor = Color.Gray;
             saveGameButton.Click += SaveGameButton_Click;
             this.Controls.Add(saveGameButton);
+
+            // Inventory Button (placed near the Save Game button)
+            Button inventoryButton = new Button();
+            inventoryButton.Text = "Inventory";
+            inventoryButton.Font = new Font("Consolas", 12);
+            inventoryButton.Size = new Size(100, 40);
+            inventoryButton.Location = new Point(120, this.ClientSize.Height - 50); // Adjust location as desired.
+            inventoryButton.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
+            inventoryButton.ForeColor = Color.White;
+            inventoryButton.BackColor = Color.Gray;
+            inventoryButton.Click += (sender, e) =>
+            {
+                // Example: In MainForm, when opening inventory:
+                string boardStateJson = JsonSerializer.Serialize(board.GetBoardState(), new JsonSerializerOptions { WriteIndented = true });
+                InventoryForm invForm = new InventoryForm(boardStateJson);
+                invForm.ShowDialog(this);
+            };
+            this.Controls.Add(inventoryButton);
+
         }
 
         private void UpdatePlayerInfoLabel()
