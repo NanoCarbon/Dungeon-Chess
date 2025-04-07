@@ -40,8 +40,8 @@ namespace DungeonChess.Win
             board = new Board(saveFileName); // Core logic reference
 
             // Record the starting king status.
-            player1StartedWithKing = board.Pieces.Any(p => p.GetPlayer() == board.player1 && p.Type == PieceType.King);
-            player2StartedWithKing = board.Pieces.Any(p => p.GetPlayer() == board.player2 && p.Type == PieceType.King);
+            player1StartedWithKing = board.Pieces.Any(p => p.player == board.player1 && p.Type == PieceType.King);
+            player2StartedWithKing = board.Pieces.Any(p => p.player == board.player2 && p.Type == PieceType.King);
 
             // -------------------------
             // 1. MESSAGE LABEL (TOP-RIGHT)
@@ -94,39 +94,58 @@ namespace DungeonChess.Win
             // Position it above the End Turn button.
             autoEndTurnCheckBox.Location = new Point(this.ClientSize.Width - 150, endTurnButton.Top - 30);
             this.Controls.Add(autoEndTurnCheckBox);
+            
+            // Create the "Return to Start" button.
+            Button returnToStartButton = new Button();
+            returnToStartButton.Text = "Return to Start";
+            returnToStartButton.Font = new Font("Consolas", 12);
+            returnToStartButton.Size = new Size(120, 40);
+            // Position it near the left-bottom corner.
+            returnToStartButton.Location = new Point(10, this.ClientSize.Height - 60);
+            returnToStartButton.ForeColor = Color.White;
+            returnToStartButton.BackColor = Color.Gray;
+            returnToStartButton.Click += (sender, e) =>
+            {
+                // This will close the main form.
+                this.Close();
+            };
+            this.Controls.Add(returnToStartButton);
 
-            // -------------------------
-            // 4. SAVE GAME BUTTON (BOTTOM-LEFT)
-            // -------------------------
+            // Create the "Save Game" button.
             Button saveGameButton = new Button();
             saveGameButton.Text = "Save Game";
             saveGameButton.Font = new Font("Consolas", 12);
-            saveGameButton.Size = new Size(100, 40);
-            saveGameButton.Location = new Point(10, this.ClientSize.Height - 50);
-            saveGameButton.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
+            saveGameButton.Size = new Size(120, 40);
+            // Place it to the right of the Return button with a gap of 10 pixels.
+            saveGameButton.Location = new Point(returnToStartButton.Right + 10, this.ClientSize.Height - 60);
             saveGameButton.ForeColor = Color.White;
             saveGameButton.BackColor = Color.Gray;
-            saveGameButton.Click += SaveGameButton_Click;
+            saveGameButton.Click += SaveGameButton_Click; // Assuming this method is defined.
             this.Controls.Add(saveGameButton);
 
-            // Inventory Button (placed near the Save Game button)
-            Button inventoryButton = new Button();
-            inventoryButton.Text = "Inventory";
-            inventoryButton.Font = new Font("Consolas", 12);
-            inventoryButton.Size = new Size(100, 40);
-            inventoryButton.Location = new Point(120, this.ClientSize.Height - 50); // Adjust location as desired.
-            inventoryButton.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
-            inventoryButton.ForeColor = Color.White;
-            inventoryButton.BackColor = Color.Gray;
-            inventoryButton.Click += (sender, e) =>
-            {
-                // Example: In MainForm, when opening inventory:
-                string boardStateJson = JsonSerializer.Serialize(board.GetBoardState(), new JsonSerializerOptions { WriteIndented = true });
-                InventoryForm invForm = new InventoryForm(boardStateJson);
-                invForm.ShowDialog(this);
-            };
-            this.Controls.Add(inventoryButton);
+        //     // Create the "Inventory" button.
+        //     Button inventoryButton = new Button();
+        //     inventoryButton.Text = "Inventory";
+        //     inventoryButton.Font = new Font("Consolas", 12);
+        //     inventoryButton.Size = new Size(120, 40);
+        //     // Place it to the right of the Save Game button with a gap of 10 pixels.
+        //     inventoryButton.Location = new Point(saveGameButton.Right + 10, this.ClientSize.Height - 60);
+        //     inventoryButton.ForeColor = Color.White;
+        //     inventoryButton.BackColor = Color.Gray;
+        //     inventoryButton.Click += (sender, e) =>
+        //     {
+        //         // Example: In MainForm, when opening inventory:
+        //         string boardStateJson = JsonSerializer.Serialize(board.GetBoardState(), new JsonSerializerOptions { WriteIndented = true });
+        //         InventoryForm invForm = new InventoryForm(boardStateJson);
+        //         invForm.ShowDialog(this);
+        //     };
+        //     this.Controls.Add(inventoryButton);
+        }
 
+        public string GetBoardStateJson()
+        {
+            BoardState state = board.GetBoardState();
+            return JsonSerializer.Serialize(state, new JsonSerializerOptions { WriteIndented = true });
         }
 
         private void UpdatePlayerInfoLabel()
@@ -152,10 +171,10 @@ namespace DungeonChess.Win
         // raise the GameOver event:
         private void CheckWinCondition()
         {
-            bool player1HasKing = board.Pieces.Any(p => p.GetPlayer() == board.player1 && p.Type == PieceType.King);
-            bool player2HasKing = board.Pieces.Any(p => p.GetPlayer() == board.player2 && p.Type == PieceType.King);
-            bool player1HasAnyPieces = board.Pieces.Any(p => p.GetPlayer() == board.player1);
-            bool player2HasAnyPieces = board.Pieces.Any(p => p.GetPlayer() == board.player2);
+            bool player1HasKing = board.Pieces.Any(p => p.player == board.player1 && p.Type == PieceType.King);
+            bool player2HasKing = board.Pieces.Any(p => p.player == board.player2 && p.Type == PieceType.King);
+            bool player1HasAnyPieces = board.Pieces.Any(p => p.player == board.player1);
+            bool player2HasAnyPieces = board.Pieces.Any(p => p.player == board.player2);
 
             if (!player1HasAnyPieces || (player1StartedWithKing && !player1HasKing))
             {
@@ -172,7 +191,10 @@ namespace DungeonChess.Win
         // Helper method to show the game over popup.
         private void ShowGameOver(int winningPlayer)
         {
-            GameOverForm gameOverForm = new GameOverForm(winningPlayer);
+            // Serialize the current board state.
+            string boardStateJson = JsonSerializer.Serialize(board.GetBoardState(), new JsonSerializerOptions { WriteIndented = true });
+            // Pass the board state JSON to GameOverForm.
+            GameOverForm gameOverForm = new GameOverForm(winningPlayer, boardStateJson);
             gameOverForm.ShowDialog();
             this.Close();
             StartForm startForm = new StartForm();
@@ -269,7 +291,7 @@ namespace DungeonChess.Win
                     if (piece != null)
                     {
                         tileText = $"{piece.Symbol}";
-                        textBrush = piece == selectedPiece ? Brushes.Red : new SolidBrush(piece.GetPlayer().PieceColor);
+                        textBrush = piece == selectedPiece ? Brushes.Red : new SolidBrush(piece.player.PieceColor);
                     }
                     
                     SizeF textSize = g.MeasureString(tileText, font);
@@ -383,7 +405,7 @@ namespace DungeonChess.Win
                     return;
                 }
 
-                if (targetPiece.GetPlayer() == selectedPiece.GetPlayer())
+                if (targetPiece.player == selectedPiece.player)
                 {
                     messageLabel.Text = "Cannot attack your own piece.";
                     return;
@@ -393,7 +415,7 @@ namespace DungeonChess.Win
                 targetPiece.TakeDamage(selectedPiece.Attack);
                 board.currentPlayer.Energy -= 1;
                 
-                if (targetPiece.GetHP() == 0)
+                if (targetPiece.hp == 0)
                 {
                     messageLabel.Text = $"Attacked piece at [{row}, {col}] for {selectedPiece.Attack} damage. Target piece has died!";
                     board.Pieces.Remove(targetPiece);
@@ -428,10 +450,10 @@ namespace DungeonChess.Win
                     Piece clickedPiece = board.GetPieceAt(row, col);
                     if (clickedPiece != null)
                     {
-                        if (clickedPiece.GetPlayer() == board.currentPlayer)
+                        if (clickedPiece.player == board.currentPlayer)
                         {
                             selectedPiece = clickedPiece;
-                            messageLabel.Text = $"Selected piece at [{row}, {col}] - HP: {clickedPiece.GetHP()}, Range: {clickedPiece.MovementRange}";
+                            messageLabel.Text = $"Selected piece at [{row}, {col}] - HP: {clickedPiece.hp}, Range: {clickedPiece.MovementRange}";
                             this.Invalidate();
                         }
                         else

@@ -13,6 +13,7 @@ namespace DungeonChess.Win
         // Panels for the two distinct boards.
         private Panel shopPanel;         // Shop board: 8x8 grid.
         private Panel inventoryPanel;    // Inventory board: 2x8 grid.
+        private Dictionary<Point, PieceData> inventoryPieceData;
 
         // Top labels for each board.
         private Label shopTitleLabel;
@@ -31,14 +32,18 @@ namespace DungeonChess.Win
         private const int TileSize = 50;
 
         // Grid dimensions.
-        private const int ShopRows = 8;
+        private const int ShopRows = 2;
         private const int ShopCols = 8;
         private const int InventoryRows = 2;
         private const int InventoryCols = 8;
 
         // Dictionaries for board data.
-        private Dictionary<Point, string> shopItems;      // Placeholder for shop board.
-        private Dictionary<Point, string> inventoryItems; // Derived from board state for player1.
+        private Dictionary<Point, Piece> shopPieces;
+        // The inventoryItems dictionary remains (populated from board state).
+        private Dictionary<Point, string> inventoryItems;
+
+        // To hold player's gold (extracted from BoardState).
+        private int? currentGoldValue = null;
 
         // Selected cells.
         private Point? selectedShopCell = null;
@@ -55,6 +60,22 @@ namespace DungeonChess.Win
             this.StartPosition = FormStartPosition.CenterParent;
             this.BackColor = Color.Black;
 
+            // Button returnToMainButton = new Button();
+            // returnToMainButton.Text = "Return to Main";
+            // returnToMainButton.Font = new Font("Arial", 12, FontStyle.Bold);
+            // returnToMainButton.Size = new Size(120, 40);
+            // returnToMainButton.Location = new Point(this.ClientSize.Width - 130, this.ClientSize.Height - 60);
+            // returnToMainButton.ForeColor = Color.Black;
+            // returnToMainButton.BackColor = Color.LightGray;
+            // returnToMainButton.Click += (sender, e) =>
+            // {
+            //     // If InventoryForm was shown with ShowDialog, setting DialogResult will close it.
+            //     this.DialogResult = DialogResult.OK;
+            //     this.Close();
+            // };
+            // this.Controls.Add(returnToMainButton);
+
+
             // Initialize the shop board with placeholder items.
             InitializeShopPlaceholders();
 
@@ -62,6 +83,53 @@ namespace DungeonChess.Win
             LoadInventoryFromBoardState(boardStateJson);
 
             SetupLayout();
+
+            // // Add a label for player's gold below the inventory panel (or details).
+            // Label goldLabel = new Label();
+            // goldLabel.Size = new Size(ColumnWidth, 50); // 50px tall.
+            // goldLabel.Location = new Point(ColumnWidth, inventoryItemLabel.Top - 50); // Place it just above the inventory detail label.
+            // goldLabel.BackColor = Color.DarkGray;
+            // goldLabel.ForeColor = Color.Black;
+            // goldLabel.Font = new Font("Arial", 10, FontStyle.Regular);
+            // goldLabel.TextAlign = ContentAlignment.MiddleCenter;
+            // // Update the gold label text using the deserialized board state.
+            // // Assuming that LoadInventoryFromBoardState sets currentGoldValue (extracted from state.Player1.Gold).
+            // goldLabel.Text = "Gold: " + (currentGoldValue.HasValue ? currentGoldValue.Value.ToString() : "N/A");
+            // this.Controls.Add(goldLabel);
+
+            // "Return to Start" button for the shop side.
+            Button returnToStartButton = new Button();
+            returnToStartButton.Text = "Return to Start";
+            returnToStartButton.Font = new Font("Arial", 10, FontStyle.Bold);
+            returnToStartButton.Size = new Size(120, 40);
+            returnToStartButton.ForeColor = Color.Black;
+            returnToStartButton.BackColor = Color.LightGray;
+            // Position it in the left column above the shopItemLabel (with a 10px gap).
+            returnToStartButton.Location = new Point((ColumnWidth - returnToStartButton.Width) / 2, shopItemLabel.Top - returnToStartButton.Height - 10);
+            returnToStartButton.Click += (sender, e) =>
+            {
+                // When clicked, return to the Start form.
+                this.DialogResult = DialogResult.OK;
+                this.Close();
+            };
+            this.Controls.Add(returnToStartButton);
+
+            // Add a "Continue" button for the inventory side.
+            // (For now, it does nothing.)
+            Button continueButton = new Button();
+            continueButton.Text = "Continue";
+            continueButton.Font = new Font("Arial", 12, FontStyle.Bold);
+            continueButton.Size = new Size(120, 40);
+            continueButton.ForeColor = Color.Black;
+            continueButton.BackColor = Color.LightGray;
+            // Position it below the inventory detail label.
+            continueButton.Location = new Point(ColumnWidth + (ColumnWidth - continueButton.Width) / 2, inventoryItemLabel.Top - continueButton.Height - 10);
+            continueButton.Click += (sender, e) =>
+            {
+                // For now, do nothing.
+            };
+            this.Controls.Add(continueButton);
+
         }
 
         private void SetupLayout()
@@ -81,7 +149,7 @@ namespace DungeonChess.Win
 
             // Shop board panel: 8x8 grid.
             shopPanel = new Panel();
-            shopPanel.Size = new Size(400, 400); // 8 * 50
+            shopPanel.Size = new Size(400, 100); // 8 * 50
             // Center horizontally in the left column.
             int shopPanelX = (ColumnWidth - shopPanel.Width) / 2;
             // Place immediately below the top label.
@@ -100,10 +168,11 @@ namespace DungeonChess.Win
             shopItemLabel.BackColor = Color.DarkGray;
             shopItemLabel.ForeColor = Color.Black;
             shopItemLabel.Font = new Font("Arial", 10, FontStyle.Regular);
-            shopItemLabel.TextAlign = ContentAlignment.MiddleCenter;
+            shopItemLabel.TextAlign = ContentAlignment.MiddleLeft;  // Left-aligned
             shopItemLabel.Text = "No shop item selected.";
             shopItemLabel.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
             this.Controls.Add(shopItemLabel);
+
 
             // --- Right Column: Inventory ---
             // Top label.
@@ -138,7 +207,7 @@ namespace DungeonChess.Win
             inventoryItemLabel.BackColor = Color.DarkGray;
             inventoryItemLabel.ForeColor = Color.Black;
             inventoryItemLabel.Font = new Font("Arial", 10, FontStyle.Regular);
-            inventoryItemLabel.TextAlign = ContentAlignment.MiddleCenter;
+            inventoryItemLabel.TextAlign = ContentAlignment.MiddleLeft;  // Left-aligned
             inventoryItemLabel.Text = "No inventory item selected.";
             inventoryItemLabel.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
             this.Controls.Add(inventoryItemLabel);
@@ -146,31 +215,46 @@ namespace DungeonChess.Win
 
         private void InitializeShopPlaceholders()
         {
-            shopItems = new Dictionary<Point, string>();
+            shopPieces = new Dictionary<Point, Piece>();
+            // For a 2x8 grid, initialize each cell to null.
             for (int r = 0; r < ShopRows; r++)
             {
                 for (int c = 0; c < ShopCols; c++)
                 {
-                    shopItems[new Point(c, r)] = $"Item {r * ShopCols + c + 1}";
+                    shopPieces[new Point(c, r)] = null;
                 }
             }
+            // Create a dummy shop player.
+            Player shopPlayer = new Player();
+            shopPlayer.PieceColor = Color.Gray;  // Shop pieces color.
+
+            // Populate specific cells with actual pieces.
+            shopPieces[new Point(0, 0)] = new Piece(0, 0, shopPlayer, PieceType.Pawn);
+            shopPieces[new Point(1, 0)] = new Piece(0, 0, shopPlayer, PieceType.Bishop);
+            shopPieces[new Point(2, 0)] = new Piece(0, 0, shopPlayer, PieceType.Rook);
         }
 
         private void LoadInventoryFromBoardState(string boardStateJson)
         {
             // Deserialize the board state using the same BoardState class.
             BoardState state = JsonSerializer.Deserialize<BoardState>(boardStateJson);
-            // Initialize the inventory dictionary with empty strings.
+            // Assume state.Player1 now includes a Gold property.
+            currentGoldValue = state.Player1.Gold;
+
+            // Initialize the inventory dictionaries with empty strings.
             inventoryItems = new Dictionary<Point, string>();
+            inventoryPieceData = new Dictionary<Point, PieceData>();
             for (int r = 0; r < InventoryRows; r++)
             {
                 for (int c = 0; c < InventoryCols; c++)
                 {
-                    inventoryItems[new Point(c, r)] = "";
+                    Point pt = new Point(c, r);
+                    inventoryItems[pt] = "";
+                    // Initialize with null to start.
+                    inventoryPieceData[pt] = null;
                 }
             }
             // Filter for player1's pieces (assume Player==1).
-            // Note: PieceData has properties: Row, Col, Player, Type.
             var player1Pieces = state.Pieces.FindAll(p => p.Player == 1);
             int index = 0;
             foreach (var piece in player1Pieces)
@@ -181,10 +265,14 @@ namespace DungeonChess.Win
                 int col = index % InventoryCols;
                 // Use a helper to convert piece type to its symbol.
                 string symbol = GetSymbolFromType(piece.Type);
-                inventoryItems[new Point(col, row)] = symbol;
+                Point key = new Point(col, row);
+                inventoryItems[key] = symbol;
+                // Also store the full PieceData for later details.
+                inventoryPieceData[key] = piece;
                 index++;
             }
         }
+
 
         private string GetSymbolFromType(string type)
         {
@@ -214,16 +302,17 @@ namespace DungeonChess.Win
             using (Font font = new Font("Arial", 10, FontStyle.Bold))
             using (SolidBrush brush = new SolidBrush(Color.Black))
             {
-                foreach (var kvp in shopItems)
+                foreach (var kvp in shopPieces)
                 {
                     Point cell = kvp.Key;
-                    string item = kvp.Value;
-                    if (!string.IsNullOrEmpty(item))
+                    Piece piece = kvp.Value;
+                    if (piece != null)
                     {
-                        SizeF textSize = g.MeasureString(item, font);
+                        string symbol = piece.Symbol.ToString();
+                        SizeF textSize = g.MeasureString(symbol, font);
                         float x = cell.X * TileSize + (TileSize - textSize.Width) / 2;
                         float y = cell.Y * TileSize + (TileSize - textSize.Height) / 2;
-                        g.DrawString(item, font, brush, x, y);
+                        g.DrawString(symbol, font, brush, x, y);
                     }
                 }
             }
@@ -239,6 +328,7 @@ namespace DungeonChess.Win
             }
         }
 
+
         private void ShopPanel_MouseClick(object sender, MouseEventArgs e)
         {
             int col = e.X / TileSize;
@@ -246,13 +336,24 @@ namespace DungeonChess.Win
             if (col < ShopCols && row < ShopRows)
             {
                 selectedShopCell = new Point(col, row);
-                if (shopItems.TryGetValue(selectedShopCell.Value, out string item) && !string.IsNullOrEmpty(item))
-                    shopItemLabel.Text = item;
+                if (shopPieces.TryGetValue(selectedShopCell.Value, out Piece piece) && piece != null)
+                {
+                    // Update with detailed attributes and player's gold.
+                    // currentGoldValue should have been set during LoadInventoryFromBoardState.
+                    shopItemLabel.Text = $"Type: {piece.Type}\n" +
+                                        $"HP: {piece.hp}\n" +
+                                        $"Attack: {piece.Attack}\n" +
+                                        $"Movement: {piece.MovementRange}\n" +
+                                        $"Piece Value: {piece.PieceValue}\n" +
+                                        $"Player Gold: {(currentGoldValue.HasValue ? currentGoldValue.Value.ToString() : "N/A")}";
+                }
                 else
                     shopItemLabel.Text = "Empty";
                 shopPanel.Invalidate();
             }
         }
+
+
         #endregion
 
         #region Inventory Panel Drawing and Interaction
@@ -301,14 +402,29 @@ namespace DungeonChess.Win
             if (col < InventoryCols && row < InventoryRows)
             {
                 selectedInventoryCell = new Point(col, row);
-                if (inventoryItems.TryGetValue(selectedInventoryCell.Value, out string symbol) && !string.IsNullOrEmpty(symbol))
-                    inventoryItemLabel.Text = symbol;
+                // If we have PieceData for the selected cell, display detailed info.
+                if (inventoryPieceData != null &&
+                    inventoryPieceData.TryGetValue(selectedInventoryCell.Value, out PieceData pd) &&
+                    pd != null)
+                {
+                    inventoryItemLabel.Text = $"Type: {pd.Type}\n" +
+                                                $"HP: {pd.HP}\n" +
+                                                $"Movement Range: {pd.MovementRange}\n" +
+                                                $"Attack: {pd.Attack}\n" +
+                                                $"Attack Range: {pd.AttackRange}\n" +
+                                                $"Value: {pd.PieceValue}";
+                }
                 else
+                {
                     inventoryItemLabel.Text = "Empty";
+                }
                 inventoryPanel.Invalidate();
                 inventoryItemLabel.Invalidate();
             }
         }
+
+
+
         #endregion
     }
 }

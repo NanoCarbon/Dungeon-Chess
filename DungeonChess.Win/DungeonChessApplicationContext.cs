@@ -34,19 +34,20 @@ namespace DungeonChess.Win
             var mainForm = new MainForm(saveFileName);
             mainForm.GameOver += (sender, winningPlayer) =>
             {
-                // Show the GameOverForm modally over the MainForm.
-                using (var gameOverForm = new GameOverForm(winningPlayer))
+                // Retrieve the serialized board state from MainForm.
+                string boardStateJson = mainForm.GetBoardStateJson();
+                // Create the GameOverForm with both winningPlayer and boardStateJson.
+                using (var gameOverForm = new GameOverForm(winningPlayer, boardStateJson))
                 {
                     gameOverForm.ShowDialog(mainForm);
                 }
-                // Wait 3 seconds without blocking the UI.
                 ShowStartForm();
-                // await Task.Delay(500);
                 mainForm.Close();
             };
             mainForm.FormClosed += OnFormClosed;
             mainForm.Show();
         }
+
 
 
         private void OnFormClosed(object sender, FormClosedEventArgs e)
