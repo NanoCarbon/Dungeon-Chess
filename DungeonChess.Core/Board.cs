@@ -122,22 +122,30 @@ namespace DungeonChess.Core
                 {
                     Row = piece.Row,
                     Col = piece.Col,
-                    // Use the PieceType property (assumed to be of type PieceType) so that the saved value matches your enum.
-                    Player = (piece.GetPlayer() == player1) ? 1 : 2,
-                    Type = piece.Type.ToString()  // Updated to use the enum value.
+                    Player = (piece.player == player1) ? 1 : 2,
+                    Type = piece.Type.ToString(),
+                    HP = piece.hp,
+                    MovementRange = piece.MovementRange,
+                    Attack = piece.Attack,
+                    AttackRange = piece.AttackRange,
+                    IsRanged = piece.IsRanged,
+                    PieceValue = piece.PieceValue
                 });
+
             }
                         // Save player data.
             state.Player1 = new PlayerData
             {
                 Energy = player1.Energy,
                 HP = player1.HP,
+                Gold = player1.Gold,         // <-- NEW: ensure Gold is serialized
                 PieceColor = player1.PieceColor.Name
             };
             state.Player2 = new PlayerData
             {
                 Energy = player2.Energy,
                 HP = player2.HP,
+                Gold = player2.Gold,         // <-- NEW
                 PieceColor = player2.PieceColor.Name
             };
             
@@ -160,7 +168,7 @@ namespace DungeonChess.Core
         {
             if (piece.Row == newRow && piece.Col == newCol)
                 return false;
-            if (piece.GetPlayer() != currentPlayer)
+            if (piece.player != currentPlayer)
                 return false;
             Piece occupant = GetPieceAt(newRow, newCol);
             if (occupant != null && occupant != piece)
@@ -217,6 +225,12 @@ namespace DungeonChess.Core
         public int Col { get; set; }
         public int Player { get; set; }
         public string Type { get; set; }
+        public int HP { get; set; }
+        public int MovementRange { get; set; }
+        public int Attack { get; set; }
+        public int AttackRange { get; set; }
+        public bool IsRanged { get; set; }
+        public int PieceValue { get; set; }
     }
 
     // New class to capture player details.
@@ -224,6 +238,8 @@ namespace DungeonChess.Core
     {
         public int Energy { get; set; }
         public int HP { get; set; }
+        public int Gold { get; set; }  // Add this property.
         public string PieceColor { get; set; }
     }
+
 }

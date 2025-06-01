@@ -9,7 +9,7 @@ namespace DungeonChess.Core
             int dx = Math.Abs(targetRow - piece.Row);
             int dy = Math.Abs(targetCol - piece.Col);
             int distance = Math.Max(dx, dy);
-            if(distance > piece.AttackRange)
+            if (distance > piece.AttackRange)
                 return false;
             // Must move horizontally or vertically.
             if (piece.Row != targetRow && piece.Col != targetCol)
@@ -19,14 +19,21 @@ namespace DungeonChess.Core
             int colStep = targetCol == piece.Col ? 0 : (targetCol > piece.Col ? 1 : -1);
             int currentRow = piece.Row + rowStep;
             int currentCol = piece.Col + colStep;
-            while(currentRow != targetRow || currentCol != targetCol)
+            while (currentRow != targetRow || currentCol != targetCol)
             {
-                if(board.GetPieceAt(currentRow, currentCol) != null)
+                if (board.GetPieceAt(currentRow, currentCol) != null)
                     return false;
                 currentRow += rowStep;
                 currentCol += colStep;
             }
+            // Check the target cell.
+            Piece occupant = board.GetPieceAt(targetRow, targetCol);
+            if (occupant == null)
+                return false;
+            if (occupant.player == piece.player)
+                return false;
             return true;
         }
     }
+
 }

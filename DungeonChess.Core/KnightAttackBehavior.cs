@@ -8,8 +8,17 @@ namespace DungeonChess.Core
         {
             int rowDiff = Math.Abs(targetRow - piece.Row);
             int colDiff = Math.Abs(targetCol - piece.Col);
-            // For a knight, attack must be in an L-shape (2 and 1).
-            return (rowDiff == 2 && colDiff == 1) || (rowDiff == 1 && colDiff == 2);
+            bool validLShape = (rowDiff == 2 && colDiff == 1) || (rowDiff == 1 && colDiff == 2);
+            if (!validLShape)
+                return false;
+            // Check the target cell.
+            Piece occupant = board.GetPieceAt(targetRow, targetCol);
+            if (occupant == null)
+                return false;
+            if (occupant.player == piece.player)
+                return false;
+            return true;
         }
     }
+
 }

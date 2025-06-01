@@ -14,8 +14,9 @@ public class Piece
     public bool IsRanged { get; set; }     // True for ranged pieces (e.g. Archer).
     public IMovementBehavior MovementBehavior { get; set; }
     public IAttackBehavior AttackBehavior { get; set; }
-    private int hp;
-    private Player player;
+    public int hp { get; set; }
+    public Player player { get; set; }
+    public int PieceValue { get; set; }
 
     public Piece(int row, int col, Player player, PieceType type)
     {
@@ -36,6 +37,7 @@ public class Piece
                 MovementBehavior = new PawnMovementBehavior();
                 IsRanged = false;
                 AttackBehavior = new PawnAttackBehavior();
+                PieceValue = 1;
                 break;
             case PieceType.Bishop:
                 Symbol = 'B';
@@ -45,6 +47,7 @@ public class Piece
                 MovementBehavior = new BishopMovementBehavior();
                 IsRanged = false;
                 AttackBehavior = new BishopAttackBehavior();
+                PieceValue = 3;
                 break;
             case PieceType.Knight:
                 Symbol = 'N';
@@ -54,6 +57,7 @@ public class Piece
                 MovementBehavior = new KnightMovementBehavior();
                 IsRanged = false;
                 AttackBehavior = new KnightAttackBehavior();
+                PieceValue = 3;
                 break;
             case PieceType.Rook:
                 Symbol = 'R';
@@ -63,6 +67,7 @@ public class Piece
                 MovementBehavior = new RookMovementBehavior();
                 IsRanged = false;
                 AttackBehavior = new RookAttackBehavior();
+                PieceValue = 5;
                 break;
             case PieceType.Queen:
                 Symbol = 'Q';
@@ -72,6 +77,7 @@ public class Piece
                 MovementBehavior = new QueenMovementBehavior();
                 IsRanged = false;
                 AttackBehavior = new QueenAttackBehavior();
+                PieceValue = 10;
                 break;
             case PieceType.Archer:
                 Symbol = 'A';
@@ -82,6 +88,7 @@ public class Piece
                 MovementBehavior = new ArcherMovementBehavior();
                 IsRanged = true;  // Ranged units do not move on kill.
                 AttackBehavior = new ArcherAttackBehavior();
+                PieceValue = 3;
                 break;
             case PieceType.Chaplain:
                 Symbol = 'C';
@@ -90,6 +97,7 @@ public class Piece
                 hp = 10;
                 MovementBehavior = null;
                 IsRanged = false;
+                PieceValue = 3;
                 break;
             case PieceType.King:
                 Symbol = 'K';
@@ -99,6 +107,7 @@ public class Piece
                 MovementBehavior = new KingMovementBehavior();
                 AttackBehavior = new KingAttackBehavior();
                 IsRanged = false;
+                PieceValue = 99999;
                 break;
         }
     }
@@ -109,13 +118,9 @@ public class Piece
     {
     }
 
-    public int GetHP() => hp;
-    public void SetHP(int value) => hp = value;
     public void TakeDamage(int damage)
     {
         hp -= damage;
         if (hp < 0) hp = 0;
     }
-    public Player GetPlayer() => player;
-    public void SetPlayer(Player p) => player = p;
 }

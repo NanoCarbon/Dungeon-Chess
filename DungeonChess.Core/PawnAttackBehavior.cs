@@ -22,7 +22,7 @@ namespace DungeonChess.Core
             Piece occupant = board.GetPieceAt(targetRow, targetCol);
             if (occupant == null)
                 return false;
-            if (occupant.GetPlayer() == piece.GetPlayer())
+            if (occupant.player == piece.player)
                 return false;
 
             return true;

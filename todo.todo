@@ -44,6 +44,13 @@
     ✔ - Separate out attack and movement range logic @done (3/31/2025, 8:11:20 PM)
 
     ---
+
+    ## RESEARCH (i.e. How the hell...)
+    ☐ How the hell does an interface work
+    ☐ How the hell does the application context work?
+    ☐ What the hell is User Controls solution to single window?
+
+    ---
     
     ## Piece Variety & Upgrades
     ✔ - Create a second type of piece with unique movement/combat rules (e.g., a Rook or Knight variant) @done (3/31/2025, 9:41:44 PM)

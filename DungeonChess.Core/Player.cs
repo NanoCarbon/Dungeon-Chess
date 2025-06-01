@@ -7,6 +7,7 @@ namespace DungeonChess.Core
     {
         public int Energy { get; set; }
         public int HP { get; set; }
+        public int Gold { get; set; }
         public Dictionary<string, int> PieceInventory { get; set; }
         public Dictionary<string, int> ItemInventory { get; set; }
         public int StartingEnergy { get; } = 1;
@@ -16,6 +17,7 @@ namespace DungeonChess.Core
         {
             Energy = StartingEnergy;
             HP = 3;
+            Gold = 10;
             PieceInventory = new Dictionary<string, int>();
             ItemInventory = new Dictionary<string, int>();
             PieceColor = Color.White; // default; will be updated in Board.cs.
